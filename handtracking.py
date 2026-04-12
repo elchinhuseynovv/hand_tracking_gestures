@@ -22,12 +22,12 @@ def fingers_up(landmarks):
 
 def detect_gesture(fingers):
     gestures = {
-        (0,0,0,0,0): "Fist ✊",
-        (1,1,1,1,1): "Open Hand 🖐️",
-        (0,1,0,0,0): "Pointing ☝️",
-        (0,1,1,0,0): "Peace ✌️",
-        (1,1,0,0,1): "Hang Loose 🤙",
-        (1,0,0,0,1): "Rock On 🤘",
+        (0,0,0,0,0): "Fist",
+        (1,1,1,1,1): "Open Hand",
+        (0,1,0,0,0): "Pointing",
+        (0,1,1,0,0): "Peace",
+        (1,1,0,0,1): "Hang Loose ",
+        (1,0,0,0,1): "Rock On",
         (0,1,1,1,1): "Four Fingers",
         (1,1,1,1,0): "Four (Thumb)",
         (0,0,0,0,1): "Pinky",
