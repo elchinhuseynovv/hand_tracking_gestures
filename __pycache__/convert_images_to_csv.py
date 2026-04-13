@@ -32,10 +32,11 @@ with mp_hands_module.Hands(
 
             rgb      = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             results = hands.process(rgb)
-
-"""
-will continue tomorrow.......
-"""
+            
+            if results.multi_hand_landmarks:
+                features = extract_features(results.multi_hand_landmarks[0])
+                writer.writerow(features + [label_clean])
+                success_count += 1
 
 
 print(f"\nAll done! CSV saved to: {OUTPUT_CSV}")
