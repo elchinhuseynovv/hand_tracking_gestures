@@ -6,6 +6,7 @@ import threading
 from collections import deque
 from mediapipe.python.solutions import hands as mp_hands_module
 from mediapipe.python.solutions import drawing_utils as mp_draw
+from mediapipe.python.solutions import drawing_styles as mp_styles
 from utils import extract_features
 
 # ── Config ─────────────────────────────────────────────
@@ -13,24 +14,81 @@ MODEL_FILE      = "models/asl_model.pkl"
 BUFFER_SIZE     = 10
 CONFIDENCE_MIN  = 0.55
 HOLD_FRAMES     = 15
+HISTORY_SIZE    = 10
+# ───────────────────────────────────────────────────────
+
+# ── Colors (BGR) ───────────────────────────────────────
+CLR_BG          = (15, 15, 15)
+CLR_PANEL       = (30, 30, 30)
+CLR_GREEN       = (0, 220, 100)
+CLR_CYAN        = (200, 220, 0)
+CLR_WHITE       = (240, 240, 240)
+CLR_GRAY        = (120, 120, 120)
+CLR_DARK        = (50, 50, 50)
+CLR_ACCENT      = (0, 165, 255)
 # ───────────────────────────────────────────────────────
 
 print("Loading model...")
 model  = joblib.load(MODEL_FILE)
 engine = pyttsx3.init()
+engine.setProperty('rate', 150)
 print("Ready!")
 
 prediction_buffer = deque(maxlen=BUFFER_SIZE)
+letter_history    = deque(maxlen=HISTORY_SIZE)
 current_word      = []
 sentence          = []
 hold_counter      = 0
 last_added        = None
+last_prediction   = None
 
 def speak(text):
-    def _speak():                    # ← fixed: was _spead
+    def _speak():
         engine.say(text)
         engine.runAndWait()
     threading.Thread(target=_speak, daemon=True).start()
+
+def draw_rounded_rect(img, x1, y1, x2, y2, radius, color, thickness=-1):
+    """Draw a filled or outlined rounded rectangle."""
+    cv2.rectangle(img, (x1 + radius, y1), (x2 - radius, y2), color, thickness)
+    cv2.rectangle(img, (x1, y1 + radius), (x2, y2 - radius), color, thickness)
+    cv2.circle(img, (x1 + radius, y1 + radius), radius, color, thickness)
+    cv2.circle(img, (x2 - radius, y1 + radius), radius, color, thickness)
+    cv2.circle(img, (x1 + radius, y2 - radius), radius, color, thickness)
+    cv2.circle(img, (x2 - radius, y2 - radius), radius, color, thickness)
+
+def draw_hud(frame, prediction, confidence, hold_counter,
+             current_word, sentence, letter_history):
+    h, w = frame.shape[:2]
+
+    # top panel
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (0, 0), (w, 90), CLR_BG, -1)
+    cv2.addWeighted(overlay, 0.85, frame, 0.15, 0, frame)
+
+    # top panel content
+    if prediction:
+        draw_rounded_rect(frame, 15, 8, 90, 82, 8, CLR_PANEL)
+        cv2.putText(frame, prediction, (25, 72),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2.2, CLR_GREEN, 4)
+        
+        # confidence label
+        cv2.putText(frame, "CONFIDENCE", (105, 28),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, CLR_GRAY, 1)
+        
+        # confidence bar bg
+        cv2.rectangle(frame, (105, 35), (w - 20, 58), CLR_DARK, -1)
+
+        # confidence bar fill
+        bar_w = int((w - 125) * confidence)
+        bar_color = CLR_GREEN if confidence > 0.75 else CLR_ACCENT
+        cv2.rectangle(frame, (105, 35), (105 + bar_w, 58), bar_color, -1)
+        cv2.putText(frame, f"{confidence*100:.0f}%", (110, 53),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, CLR_BG, 2)
+        
+        # hold progress bar
+        
+
 
 cap = cv2.VideoCapture(0)
 
