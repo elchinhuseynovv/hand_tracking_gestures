@@ -8,8 +8,8 @@ import os
 
 # CONFIG
 
-DATA_FILE   = "data/asl_data.csv"
-MODEL_FILE  = "models/asl_model.pkl"
+DATA_FILE   = "data/az_data.csv"
+MODEL_FILE  = "models/az_model.pkl"
 
 print("Loading data...")
 df = pd.read_csv(DATA_FILE, header=None)

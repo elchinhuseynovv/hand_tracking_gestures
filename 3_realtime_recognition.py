@@ -10,7 +10,7 @@ from mediapipe.python.solutions import drawing_styles as mp_styles
 from utils import extract_features
 
 # ── Config ─────────────────────────────────────────────
-MODEL_FILE      = "models/asl_model.pkl"
+MODEL_FILE      = "models/az_model.pkl"
 BUFFER_SIZE     = 10
 CONFIDENCE_MIN  = 0.55
 HOLD_FRAMES     = 15

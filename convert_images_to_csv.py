@@ -5,9 +5,9 @@ from mediapipe.python.solutions import hands as mp_hands_module
 from utils import extract_features
 
 # ── Config ─────────────────────────────────────────────
-IMAGE_DATASET_PATH = r"E:\1. Private\Coding\ASL_Data\asl_alphabet_train\asl_alphabet_train"
-OUTPUT_CSV         = "data/asl_data.csv"
-SKIP_LABELS        = {"nothing", "space", "del"}
+IMAGE_DATASET_PATH = r"E:\1. Private\Coding\AzSLD_Fingerspelling"
+OUTPUT_CSV         = "data/az_data.csv"
+SKIP_LABELS        = set()
 # ───────────────────────────────────────────────────────
 
 os.makedirs("data", exist_ok=True)
@@ -24,8 +24,8 @@ with mp_hands_module.Hands(
         labels = sorted(os.listdir(IMAGE_DATASET_PATH))
         total  = len(labels)
 
-        for i, label in enumerate(labels):       # ← was missing enumerate
-            label_clean = label.upper()          # ← these lines were missing
+        for i, label in enumerate(labels):
+            label_clean = label.upper()
             if label_clean.lower() in SKIP_LABELS:
                 continue
 
@@ -34,9 +34,9 @@ with mp_hands_module.Hands(
                 continue
 
             images        = os.listdir(label_path)
-            success_count = 0                    # ← was missing
+            success_count = 0                
 
-            for img_file in images:              # ← inner loop was missing
+            for img_file in images:     
                 img_path = os.path.join(label_path, img_file)
                 image    = cv2.imread(img_path)
                 if image is None:
