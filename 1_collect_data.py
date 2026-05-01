@@ -7,7 +7,7 @@ from mediapipe.python.solutions import drawing_utils as mp_draw
 from utils import extract_features
 
 # ── Config ─────────────────────────────────────────────────
-DATA_FILE = "data/asl_data.csv"
+DATA_FILE = "data/az_data.csv"
 SAMPLES_PER_LABEL = 200         # how many frames to record per sign
 COUNTDOWN = 3                   # seconds to get ready before recording starts
 # ────────────────────────────────────────────────────────────
