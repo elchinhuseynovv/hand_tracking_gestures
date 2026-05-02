@@ -369,7 +369,40 @@ class MainWindow(QMainWindow):
             self.conf_bar.setValue(0)
             self.hold_bar.setValue(0)
 
-"""will continue......"""
+    def _refresh_display(self):
+        self.word_label.setText("".join(self.current_word) or "...")
+        self.sentence_str = " ".join(self.sentence)
+        self.sent_label.setText(sentence_str[-50:] if len(sentence_str) > 50
+                                else self.sentence_str or "...")
+        self.history_label.setText(
+            " ".join(list(self.letter_history)) or "-"
+        )
+
+    def confirm_word(self)
+        if self.current_word:
+            self.sentence.append("".join(self.current_word))
+            self.current_word = []
+            self._refresh_display()
+
+    def delete_letter(self):
+        if self.current_word:
+            self.current_word.pop()
+            if self.letter_history:
+                self.letter_history.pop()
+            self._refresh_display()
+
+    def speak_sentence(self):
+        full = " ".join(self.sentence)
+        if full:
+            def _speak():
+                self.engine.say(full)
+                self.engine.runAndWait()
+                threading.Thread(target=_speak, daemon=True).start()
+                print(f"Speaking: {full}")
+    
+    def closeEvent(self, event):
+        self.camera_thread.stop()
+        event.accept()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
