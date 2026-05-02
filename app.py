@@ -63,7 +63,7 @@ class CameraThread(QThread):
                     continue
 
                 frame = cv2.flip(frame, 1)
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BAYER_BGGR2RGB)
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = hands.process(rgb)
 
                 prediction = ""
@@ -78,8 +78,8 @@ class CameraThread(QThread):
                         mp_styles.get_default_hand_connections_style()
                     )
 
-                    feature = extract_features(hand_lm)
-                    feature_np = np.array(features).reshape(1, -1)
+                    features = extract_features(hand_lm)
+                    features_np = np.array(features).reshape(1, -1)
                     proba = self.model.predict_proba(features_np)[0]
                     confidence = float(np.max(proba))
                     raw_pred = self.model.classes_[np.argmax(proba)]
@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
         self.showFullScreen()
         self.setStyleSheet(f"background-color: {C_BG}; color: {C_WHITE};")
 
-        self.build_ui()
+        self._build_ui()
         self._setup_shortcuts()
 
         self.camera_thread = CameraThread(self.model)
@@ -155,9 +155,9 @@ class MainWindow(QMainWindow):
         # TITLE BAR
         title_bar = QHBoxLayout()
         title = QLabel("AzSL Recognition")
-        title.setFont(QFont"Courier New", 13)
+        title.setFont(QFont("Courier New", 13))
         title.setStyleSheet(f"color: {C_GRAY};")
-        title.bar.addWidget(title)
+        title_bar.addWidget(title)
         title_bar.addStretch()
         quit_btn = QPushButton("X Quit")
         quit_btn.setFixedSize(80, 28)
@@ -191,7 +191,7 @@ class MainWindow(QMainWindow):
 
         # LETTER DISPLAY
         letter_panel = QWidget()
-        letter_panel.setStyle(f"background: {C_PANEL}; border-radius: 8px;")
+        letter_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px;")
         letter_layout = QVBoxLayout(letter_panel)
         lbl_title = QLabel("DETECETED LETTER")
         lbl_title.setFont(QFont("Courier New", 10))
@@ -324,13 +324,13 @@ class MainWindow(QMainWindow):
 
     def _setup_shortcuts(self):
         QShortcut(QKeySequence("Escape"), self, self.close)
-        QShortcut(QKeySequence("Space"), self, self.confrim_word)
+        QShortcut(QKeySequence("Space"), self, self.confirm_word)
         QShortcut(QKeySequence("Backspace"), self, self.delete_letter)
         QShortcut(QKeySequence("Return"), self, self.speak_sentence)
         QShortcut(QKeySequence("c"), self, self.clear_all)
 
     def update_frame(self, frame):
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BAYER_BGR2RGB)
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
         img = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
         pix = QPixmap.fromImage(img).scaled(
@@ -363,6 +363,7 @@ class MainWindow(QMainWindow):
                 self.current_word.append(prediction)
                 self.letter_history.append(prediction)
                 self.camera_thread.confirm_letter(prediction)
+                self._refresh_display()
         
         else:
             self.letter_label.setText("-")
@@ -371,14 +372,14 @@ class MainWindow(QMainWindow):
 
     def _refresh_display(self):
         self.word_label.setText("".join(self.current_word) or "...")
-        self.sentence_str = " ".join(self.sentence)
+        sentence_str = " ".join(self.sentence)
         self.sent_label.setText(sentence_str[-50:] if len(sentence_str) > 50
-                                else self.sentence_str or "...")
+                                else sentence_str or "...")
         self.history_label.setText(
             " ".join(list(self.letter_history)) or "-"
         )
 
-    def confirm_word(self)
+    def confirm_word(self):
         if self.current_word:
             self.sentence.append("".join(self.current_word))
             self.current_word = []
@@ -391,14 +392,21 @@ class MainWindow(QMainWindow):
                 self.letter_history.pop()
             self._refresh_display()
 
+    def clear_all(self):
+        self.current_word = []
+        self.sentence     = []
+        self.letter_history.clear()
+        self._refresh_display()
+
+
     def speak_sentence(self):
         full = " ".join(self.sentence)
         if full:
             def _speak():
                 self.engine.say(full)
                 self.engine.runAndWait()
-                threading.Thread(target=_speak, daemon=True).start()
-                print(f"Speaking: {full}")
+            threading.Thread(target=_speak, daemon=True).start()
+            print(f"Speaking: {full}")
     
     def closeEvent(self, event):
         self.camera_thread.stop()
