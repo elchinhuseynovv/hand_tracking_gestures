@@ -109,16 +109,17 @@ class CameraThread(QThread):
                 self.prediction_ready.emit(prediction, confidence,
                                            self.hold_counter)
 
-            cap.release()
-            
+        cap.release()
+
     def confirm_letter(self, letter):
         self.last_added = letter
         self.hold_counter = 0
         self.prediction_buffer.clear()
-    
+
     def stop(self):
         self.running = False
         self.wait()
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -149,23 +150,23 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(8)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(10)
 
-        # TITLE BAR
+        # ── Title bar ──────────────────────────────────
         title_bar = QHBoxLayout()
         title = QLabel("AzSL Recognition")
-        title.setFont(QFont("Courier New", 13))
+        title.setFont(QFont("Courier New", 14))
         title.setStyleSheet(f"color: {C_GRAY};")
         title_bar.addWidget(title)
         title_bar.addStretch()
-        quit_btn = QPushButton("X Quit")
-        quit_btn.setFixedSize(80, 28)
+        quit_btn = QPushButton("✕  Quit")
+        quit_btn.setFixedSize(90, 32)
         quit_btn.setStyleSheet(f"""
             QPushButton {{
-                background: #ff5f57; color: {C_BG};
+                background: #ff5f57; color: #000;
                 border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 12px;
+                font-family: 'Courier New'; font-size: 12px; font-weight: bold;
             }}
             QPushButton:hover {{ background: #ff3b30; }}
         """)
@@ -173,109 +174,157 @@ class MainWindow(QMainWindow):
         title_bar.addWidget(quit_btn)
         root.addLayout(title_bar)
 
-        # MAIN ROW
+        # ── Main row ───────────────────────────────────
         main_row = QHBoxLayout()
-        main_row.setSpacing(8)
+        main_row.setSpacing(12)
 
-        # WEBCAM FEED
+        # Webcam — 65% of width
         self.cam_label = QLabel()
-        self.cam_label.setMinimumSize(640, 400)
-        self.cam_label.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px;")
+        self.cam_label.setMinimumSize(700, 480)
+        self.cam_label.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        """)
         self.cam_label.setAlignment(Qt.AlignCenter)
         self.cam_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        main_row.addWidget(self.cam_label, 3)
+        main_row.addWidget(self.cam_label, 65)
 
-        # RIGHT PANEL
+        # Right panel — 35% of width
         right = QVBoxLayout()
-        right.setSpacing(8)
+        right.setSpacing(10)
 
-        # LETTER DISPLAY
+        # ── Big letter box ─────────────────────────────
         letter_panel = QWidget()
-        letter_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px;")
+        letter_panel.setMinimumHeight(220)
+        letter_panel.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        """)
         letter_layout = QVBoxLayout(letter_panel)
-        lbl_title = QLabel("DETECETED LETTER")
+        letter_layout.setContentsMargins(16, 12, 16, 12)
+        lbl_title = QLabel("DETECTED LETTER")
         lbl_title.setFont(QFont("Courier New", 10))
-        lbl_title.setStyleSheet(f"color: {C_GREEN};")
-        self.letter_label = QLabel("-")
-        self.letter_label.setFont(QFont("Courier New", 80, QFont.Bold))
-        self.letter_label.setStyleSheet(f"color: {C_GREEN};")
+        lbl_title.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        self.letter_label = QLabel("—")
+        self.letter_label.setFont(QFont("Courier New", 100, QFont.Bold))
+        self.letter_label.setStyleSheet(f"color: {C_GREEN}; border: none;")
         self.letter_label.setAlignment(Qt.AlignCenter)
+        self.letter_label.setMinimumHeight(140)
         letter_layout.addWidget(lbl_title)
         letter_layout.addWidget(self.letter_label)
-        right.addWidget(letter_panel, 2)
+        right.addWidget(letter_panel)
 
-        # CONFIDENCE BAR
+        # ── Confidence bar ─────────────────────────────
         conf_panel = QWidget()
-        conf_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px")
+        conf_panel.setMinimumHeight(80)
+        conf_panel.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        """)
         conf_layout = QVBoxLayout(conf_panel)
+        conf_layout.setContentsMargins(16, 10, 16, 10)
         conf_lbl = QLabel("CONFIDENCE")
         conf_lbl.setFont(QFont("Courier New", 10))
-        conf_lbl.setStyleSheet(f"color: {C_GRAY};")
+        conf_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.conf_bar = QProgressBar()
         self.conf_bar.setRange(0, 100)
         self.conf_bar.setTextVisible(True)
-        self.conf_bar.setFixedHeight(20)
+        self.conf_bar.setFixedHeight(28)
         self.conf_bar.setStyleSheet(f"""
             QProgressBar {{
-                background: {C_DARK}; border-radius: 4px;
-                color: {C_BG}; font-family: 'Courier New'; font-size: 11px;
+                background: {C_DARK};
+                border-radius: 6px;
+                border: none;
+                color: #000;
+                font-family: 'Courier New';
+                font-size: 12px;
+                font-weight: bold;
             }}
-            QProgressBar::chunk {{ background: {C_GREEN}; border-radius: 4px; }}
+            QProgressBar::chunk {{
+                background: {C_GREEN};
+                border-radius: 6px;
+            }}
         """)
         conf_layout.addWidget(conf_lbl)
         conf_layout.addWidget(self.conf_bar)
         right.addWidget(conf_panel)
 
-        # HOLD BAR
+        # ── Hold progress bar ──────────────────────────
         hold_panel = QWidget()
-        hold_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px;")
+        hold_panel.setMinimumHeight(80)
+        hold_panel.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        """)
         hold_layout = QVBoxLayout(hold_panel)
+        hold_layout.setContentsMargins(16, 10, 16, 10)
         hold_lbl = QLabel("HOLD PROGRESS")
         hold_lbl.setFont(QFont("Courier New", 10))
-        hold_lbl.setStyleSheet(f"color: {C_GRAY};")
+        hold_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.hold_bar = QProgressBar()
         self.hold_bar.setRange(0, HOLD_FRAMES)
         self.hold_bar.setTextVisible(False)
-        self.hold_bar.setFixedHeight(20)
+        self.hold_bar.setFixedHeight(28)
         self.hold_bar.setStyleSheet(f"""
             QProgressBar {{
-                background: {C_DARK}; border-radius: 4px;
+                background: {C_DARK};
+                border-radius: 6px;
+                border: none;
             }}
-            QProgressBar::chunk {{ background: {C_CYAN}; border-radius: 4px; }}
+            QProgressBar::chunk {{
+                background: {C_CYAN};
+                border-radius: 6px;
+            }}
         """)
         hold_layout.addWidget(hold_lbl)
         hold_layout.addWidget(self.hold_bar)
         right.addWidget(hold_panel)
 
-        # HISTORY
+        # ── Letter history ─────────────────────────────
         hist_panel = QWidget()
-        hist_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px;")
+        hist_panel.setMinimumHeight(80)
+        hist_panel.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        """)
         hist_layout = QVBoxLayout(hist_panel)
+        hist_layout.setContentsMargins(16, 10, 16, 10)
         hist_lbl = QLabel("HISTORY")
         hist_lbl.setFont(QFont("Courier New", 10))
-        hist_lbl.setStyleSheet(f"color: {C_GRAY};")
+        hist_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.history_label = QLabel("—")
-        self.history_label.setFont(QFont("Courier New", 16))
-        self.history_label.setStyleSheet(f"color: {C_WHITE}; letter-spacing: 6px;")
+        self.history_label.setFont(QFont("Courier New", 18))
+        self.history_label.setStyleSheet(f"color: {C_WHITE}; border: none;")
         hist_layout.addWidget(hist_lbl)
         hist_layout.addWidget(self.history_label)
         right.addWidget(hist_panel)
 
         right.addStretch()
-        main_row.addLayout(right, 1)
+        main_row.addLayout(right, 35)
         root.addLayout(main_row, 1)
 
         # ── Word row ───────────────────────────────────
         word_panel = QWidget()
-        word_panel.setFixedHeight(60)
-        word_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px;")
+        word_panel.setFixedHeight(64)
+        word_panel.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 10px;
+            border: 1px solid #2a2a2a;
+        """)
         word_row = QHBoxLayout(word_panel)
+        word_row.setContentsMargins(20, 0, 20, 0)
         word_lbl = QLabel("WORD")
+        word_lbl.setFixedWidth(90)
         word_lbl.setFont(QFont("Courier New", 10))
-        word_lbl.setStyleSheet(f"color: {C_GRAY};")
+        word_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.word_label = QLabel("...")
-        self.word_label.setFont(QFont("Courier New", 22))
-        self.word_label.setStyleSheet(f"color: {C_WHITE};")
+        self.word_label.setFont(QFont("Courier New", 24))
+        self.word_label.setStyleSheet(f"color: {C_WHITE}; border: none;")
         word_row.addWidget(word_lbl)
         word_row.addWidget(self.word_label)
         word_row.addStretch()
@@ -283,28 +332,35 @@ class MainWindow(QMainWindow):
 
         # ── Sentence row ───────────────────────────────
         sent_row = QHBoxLayout()
+        sent_row.setSpacing(10)
         sent_panel = QWidget()
-        sent_panel.setFixedHeight(52)
-        sent_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 8px;")
+        sent_panel.setFixedHeight(64)
+        sent_panel.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 10px;
+            border: 1px solid #2a2a2a;
+        """)
         sent_layout = QHBoxLayout(sent_panel)
+        sent_layout.setContentsMargins(20, 0, 20, 0)
         sent_lbl = QLabel("SENTENCE")
+        sent_lbl.setFixedWidth(90)
         sent_lbl.setFont(QFont("Courier New", 10))
-        sent_lbl.setStyleSheet(f"color: {C_GRAY};")
+        sent_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.sent_label = QLabel("...")
-        self.sent_label.setFont(QFont("Courier New", 16))
-        self.sent_label.setStyleSheet(f"color: {C_BLUE};")
+        self.sent_label.setFont(QFont("Courier New", 18))
+        self.sent_label.setStyleSheet(f"color: {C_BLUE}; border: none;")
         sent_layout.addWidget(sent_lbl)
         sent_layout.addWidget(self.sent_label)
         sent_layout.addStretch()
         sent_row.addWidget(sent_panel, 1)
 
         speak_btn = QPushButton("SPEAK")
-        speak_btn.setFixedSize(100, 52)
+        speak_btn.setFixedSize(110, 64)
         speak_btn.setStyleSheet(f"""
             QPushButton {{
-                background: {C_GREEN}; color: {C_BG};
-                border: none; border-radius: 8px;
-                font-family: 'Courier New'; font-size: 14px; font-weight: bold;
+                background: {C_GREEN}; color: #000;
+                border: none; border-radius: 10px;
+                font-family: 'Courier New'; font-size: 15px; font-weight: bold;
             }}
             QPushButton:hover {{ background: #00b850; }}
             QPushButton:pressed {{ background: #009040; }}
@@ -358,15 +414,14 @@ class MainWindow(QMainWindow):
             """)
             self.hold_bar.setValue(hold_counter)
 
-            # auto confirm letter when hold completes
-            if  hold_counter >= HOLD_FRAMES:
+            if hold_counter >= HOLD_FRAMES:
                 self.current_word.append(prediction)
                 self.letter_history.append(prediction)
                 self.camera_thread.confirm_letter(prediction)
                 self._refresh_display()
-        
+
         else:
-            self.letter_label.setText("-")
+            self.letter_label.setText("—")
             self.conf_bar.setValue(0)
             self.hold_bar.setValue(0)
 
@@ -376,7 +431,7 @@ class MainWindow(QMainWindow):
         self.sent_label.setText(sentence_str[-50:] if len(sentence_str) > 50
                                 else sentence_str or "...")
         self.history_label.setText(
-            " ".join(list(self.letter_history)) or "-"
+            "  ".join(list(self.letter_history)) or "—"
         )
 
     def confirm_word(self):
@@ -398,7 +453,6 @@ class MainWindow(QMainWindow):
         self.letter_history.clear()
         self._refresh_display()
 
-
     def speak_sentence(self):
         full = " ".join(self.sentence)
         if full:
@@ -407,10 +461,11 @@ class MainWindow(QMainWindow):
                 self.engine.runAndWait()
             threading.Thread(target=_speak, daemon=True).start()
             print(f"Speaking: {full}")
-    
+
     def closeEvent(self, event):
         self.camera_thread.stop()
         event.accept()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
