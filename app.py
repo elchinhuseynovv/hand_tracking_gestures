@@ -10,7 +10,7 @@ from mediapipe.python.solutions import drawing_utils as mp_draw
 from mediapipe.python.solutions import drawing_styles as mp_styles
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
-                             QProgressBar, QSizePolicy, QShortcut)
+                             QProgressBar, QSizePolicy, QShortcut, QSlider)
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence, QColor
 from utils import extract_features
@@ -371,6 +371,31 @@ class SettingsPanel(QWidget):
 
 
 class MainWindow(QMainWindow):
+    def _toggle_settings(self):
+        if self.settings_panel.isVisible():
+            self.settings_panel.hide()
+        else:
+            self._reposition_settings()
+            self.settings_panel.show()
+            self.settings_panel.raise_()
+
+    def _reposition_settings(self):
+        self.settings_panel.move(self.width() - 280, 0)
+
+    def _apply_settings(self, confidence, hold, buffer, model_path):
+        global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE
+        CONFIDENCE_MIN = confidence
+        HOLD_FRAMES = hold
+        BUFFER_SIZE = buffer
+        self.hold_bar.setRange(0, hold)
+        self.camera_thread.prediction_buffer = __import__('collections').deque(maxlen=buffer)
+        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer}")
+
+    def resize(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'settings_panel'):
+            self._reposition_settings()
+            
     def __init__(self):
         super().__init__()
         self.model = joblib.load(MODEL_FILE)
@@ -390,6 +415,12 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._setup_shortcuts()
 
+        self.settings_panel = SettingsPanel(self)
+        self.settings_panel.settings_applied.connect(self._apply_settings)
+        self.settings_panel.hide()
+        self._reposition_settings()
+
+
         self.camera_thread = CameraThread(self.model)
         self.camera_thread.frame_ready.connect(self.update_frame)
         self.camera_thread.prediction_ready.connect(self.update_prediction)
@@ -401,6 +432,20 @@ class MainWindow(QMainWindow):
         root = QVBoxLayout(central)
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(10)
+
+        # ── gear button ─────────────────────────────────
+        settings_btn = QPushButton("⚙  Settings")
+        settings_btn.setFixedSize(110, 32)
+        settings_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #2a2a2a; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #3a3a3a; }}
+        """)
+        settings_btn.clicked.connect(self._toggle_settings)
+        title_bar.addWidget(settings_btn)
 
         # ── Title bar ──────────────────────────────────
         title_bar = QHBoxLayout()
