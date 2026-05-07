@@ -120,6 +120,255 @@ class CameraThread(QThread):
         self.running = False
         self.wait()
 
+class SettingsPanel(QWidget):
+    settings_applied = pyqtSignal(float, int, int, str)
+
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setFixedWidth(280)
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: #141414;
+                border-left: 3px solid {C_GREEN};
+            }}
+        """)
+        self._build()
+
+    def _build(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+
+        # HEADER
+        header_row = QHBoxLayout()
+        title = QLabel("SETTINGS")
+        title.setFont(QFont("Courier New", 14, QFont.Bold))
+        title.setStyleSheet(f"color: {C_GREEN}; border: none;")
+        header_row.addWidget(title)
+        header_row.addStretch()
+        close_btn = QPushButton("ESC")
+        close_btn.setFixedSize(44, 26)
+        close_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #2a2a2a; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 11px;
+            }}
+            QPushButton:hover {{ background: #3a3a3a; color: {C_WHITE}; }}
+        """)
+        close_btn.clicked.connect(self.hide)
+        header_row.addWidget(close_btn)
+        layout.addLayout(header_row)
+
+        self._divider(layout)
+
+        # MODEL FILE
+        layout.addWidget(self._label("MODEL FILE"))
+        model_row = QHBoxLayout()
+        self.model_inpu= QLabel("az_model.pkl")
+        self.model_input.setFont(QFont("Courier New", 11))
+        self.model_input.setStyleSheet(f"""
+            background: #1c1c1c; color: {C_WHITE};
+            border-radius: 6px; padding: 6px 10px; border: none;
+        """)
+        self.model_input.setFixedHeight(34)
+        browse_btn = QPushButton("...")
+        browse_btn.setFixedSize(34, 34)
+        browse_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #1c1c1c; color: {C_GREEN};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 14px;
+            }}
+            QPushButton:hover {{ background: #2a2a2a; }}
+        """)
+        browse_btn.clicked.connect(self._browse_model)
+        model_row.addWidget(self.model_input, 1)
+        model_row.addWidget(browse_btn)
+        layout.addLayout(model_row)
+
+        self._divider(layout)
+
+                # ── Confidence slider ──────────────────────────
+        conf_row = QHBoxLayout()
+        conf_row.addWidget(self._label("CONFIDENCE THRESHOLD"))
+        self.conf_val = QLabel("55%")
+        self.conf_val.setFont(QFont("Courier New", 11))
+        self.conf_val.setStyleSheet(f"color: {C_GREEN}; border: none;")
+        conf_row.addWidget(self.conf_val)
+        layout.addLayout(conf_row)
+
+        self.conf_slider = QSlider(Qt.Horizontal)
+        self.conf_slider.setRange(10, 95)
+        self.conf_slider.setValue(55)
+        self.conf_slider.setStyleSheet(self._slider_style(C_GREEN))
+        self.conf_slider.valueChanged.connect(
+            lambda v: self.conf_val.setText(f"{v}%")
+        )
+        layout.addWidget(self.conf_slider)
+
+        hint = QHBoxLayout()
+        hint.addWidget(self._hint("0% (lenient)"))
+        hint.addStretch()
+        hint.addWidget(self._hint("100% (strict)"))
+        layout.addLayout(hint)
+
+        self._divider(layout)
+
+        # ── Hold frames slider ─────────────────────────
+        hold_row = QHBoxLayout()
+        hold_row.addWidget(self._label("HOLD SPEED"))
+        self.hold_val = QLabel("20 frames")
+        self.hold_val.setFont(QFont("Courier New", 11))
+        self.hold_val.setStyleSheet(f"color: {C_CYAN}; border: none;")
+        hold_row.addWidget(self.hold_val)
+        layout.addLayout(hold_row)
+
+        self.hold_slider = QSlider(Qt.Horizontal)
+        self.hold_slider.setRange(5, 40)
+        self.hold_slider.setValue(20)
+        self.hold_slider.setStyleSheet(self._slider_style(C_CYAN))
+        self.hold_slider.valueChanged.connect(
+            lambda v: self.hold_val.setText(f"{v} frames")
+        )
+        layout.addWidget(self.hold_slider)
+
+        hint2 = QHBoxLayout()
+        hint2.addWidget(self._hint("5 (fast)"))
+        hint2.addStretch()
+        hint2.addWidget(self._hint("40 (slow)"))
+        layout.addLayout(hint2)
+
+        self._divider(layout)
+
+        # ── Buffer size slider ─────────────────────────
+        buf_row = QHBoxLayout()
+        buf_row.addWidget(self._label("SMOOTHING BUFFER"))
+        self.buf_val = QLabel("10 frames")
+        self.buf_val.setFont(QFont("Courier New", 11))
+        self.buf_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
+        buf_row.addWidget(self.buf_val)
+        layout.addLayout(buf_row)
+
+        self.buf_slider = QSlider(Qt.Horizontal)
+        self.buf_slider.setRange(3, 20)
+        self.buf_slider.setValue(10)
+        self.buf_slider.setStyleSheet(self._slider_style(C_BLUE))
+        self.buf_slider.valueChanged.connect(
+            lambda v: self.buf_val.setText(f"{v} frames")
+        )
+        layout.addWidget(self.buf_slider)
+
+        hint3 = QHBoxLayout()
+        hint3.addWidget(self._hint("3 (fast)"))
+        hint3.addStretch()
+        hint3.addWidget(self._hint("20 (smooth)"))
+        layout.addLayout(hint3)
+
+        self._divider(layout)
+
+        # ── Apply button ───────────────────────────────
+        apply_btn = QPushButton("APPLY SETTINGS")
+        apply_btn.setFixedHeight(44)
+        apply_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {C_GREEN}; color: #000;
+                border: none; border-radius: 8px;
+                font-family: 'Courier New'; font-size: 13px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background: #00b850; }}
+            QPushButton:pressed {{ background: #009040; }}
+        """)
+        apply_btn.clicked.connect(self._apply)
+        layout.addWidget(apply_btn)
+
+        # ── Reset + Close ──────────────────────────────
+        btn_row = QHBoxLayout()
+        reset_btn = QPushButton("RESET")
+        reset_btn.setFixedHeight(34)
+        reset_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #1c1c1c; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 11px;
+            }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
+        """)
+        reset_btn.clicked.connect(self._reset)
+        close_btn2 = QPushButton("CLOSE")
+        close_btn2.setFixedHeight(34)
+        close_btn2.setStyleSheet(f"""
+            QPushButton {{
+                background: #1c1c1c; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 11px;
+            }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
+        """)
+        close_btn2.clicked.connect(self.hide)
+        btn_row.addWidget(reset_btn)
+        btn_row.addWidget(close_btn2)
+        layout.addLayout(btn_row)
+
+        layout.addStretch()
+
+    def _label(self, text):
+        lbl = QLabel(text)
+        lbl.setFont(QFont("Courier New", 10))
+        lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+
+    def _hint(self, text):
+        lbl = QLabel(text)
+        lbl.setFont(QFont("Courier New", 9))
+        lbl.setStyleSheet(f"color: #444; border: none;")
+        return lbl
+    
+    def _divider(self, layout):
+        line = QWidget()
+        line.setFixedHeight(1)
+        line.setStyleSheet("background: #2a2a2a; border: none;")
+        layout.addWidget(line)
+
+    def _slider_style(self, color):
+        return f"""
+            QSlider::groove:horizontal {{
+                height: 6px; background: #2a2a2a; border-radius: 3px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {color}; border-radius: 3px;
+            }}
+            QSlider::handle:horizontal {{
+                width: 16px; height: 16px; margin: -5px 0;
+                background: {color}; border-radius: 8px;
+            }}
+        """
+
+    def _browse_model(self):
+        from PyQt5.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select Model", "models/", "Model files (*.pkl *.h5)"
+        )
+        if path:
+            self.model_input.setText(path.split("/")[-1])
+            self._model_path = path
+
+    def _apply(self):
+        confidence = self.conf_slider.value() / 100.0
+        hold = self.hold_slider.value()
+        buffer = self.buf_slider.value()
+        self._model_path = getattr(self, '_model_path',
+                                   f"models/{self.model_input.text()}")
+        self.settings_applied.emit(confidence, hold, buffer, _model_path)
+        self.hide()
+
+    def _reset(self):
+        self.conf_slider.setValue(55)
+        self.hold_slider.setValue(20)
+        self.buf_slider.setValue(10)
+        self.model_input.setText("az_model.pkl")
+        if hasattr(self, '_model_path'):
+            del self._model_path
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
