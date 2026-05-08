@@ -165,7 +165,7 @@ class SettingsPanel(QWidget):
         # MODEL FILE
         layout.addWidget(self._label("MODEL FILE"))
         model_row = QHBoxLayout()
-        self.model_inpu= QLabel("az_model.pkl")
+        self.model_input= QLabel("az_model.pkl")
         self.model_input.setFont(QFont("Courier New", 11))
         self.model_input.setStyleSheet(f"""
             background: #1c1c1c; color: {C_WHITE};
@@ -316,6 +316,7 @@ class SettingsPanel(QWidget):
         lbl = QLabel(text)
         lbl.setFont(QFont("Courier New", 10))
         lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        return lbl
 
     def _hint(self, text):
         lbl = QLabel(text)
@@ -358,7 +359,7 @@ class SettingsPanel(QWidget):
         buffer = self.buf_slider.value()
         self._model_path = getattr(self, '_model_path',
                                    f"models/{self.model_input.text()}")
-        self.settings_applied.emit(confidence, hold, buffer, _model_path)
+        self.settings_applied.emit(confidence, hold, buffer, self._model_path)
         self.hide()
 
     def _reset(self):
@@ -391,7 +392,7 @@ class MainWindow(QMainWindow):
         self.camera_thread.prediction_buffer = __import__('collections').deque(maxlen=buffer)
         print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer}")
 
-    def resize(self, event):
+    def resizeEvent(self, event):
         super().resizeEvent(event)
         if hasattr(self, 'settings_panel'):
             self._reposition_settings()
@@ -433,20 +434,6 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(10)
 
-        # ── gear button ─────────────────────────────────
-        settings_btn = QPushButton("⚙  Settings")
-        settings_btn.setFixedSize(110, 32)
-        settings_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: #2a2a2a; color: {C_GRAY};
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 12px;
-            }}
-            QPushButton:hover {{ color: {C_WHITE}; background: #3a3a3a; }}
-        """)
-        settings_btn.clicked.connect(self._toggle_settings)
-        title_bar.addWidget(settings_btn)
-
         # ── Title bar ──────────────────────────────────
         title_bar = QHBoxLayout()
         title = QLabel("AzSL Recognition")
@@ -467,6 +454,20 @@ class MainWindow(QMainWindow):
         quit_btn.clicked.connect(self.close)
         title_bar.addWidget(quit_btn)
         root.addLayout(title_bar)
+
+         # ── gear button ─────────────────────────────────
+        settings_btn = QPushButton("⚙  Settings")
+        settings_btn.setFixedSize(110, 32)
+        settings_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #2a2a2a; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #3a3a3a; }}
+        """)
+        settings_btn.clicked.connect(self._toggle_settings)
+        title_bar.addWidget(settings_btn)
 
         # ── Main row ───────────────────────────────────
         main_row = QHBoxLayout()
