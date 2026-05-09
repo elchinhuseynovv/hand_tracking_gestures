@@ -11,8 +11,8 @@ from mediapipe.python.solutions import drawing_styles as mp_styles
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
                              QProgressBar, QSizePolicy, QShortcut, QSlider)
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
-from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence, QColor
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features
 
 # ── Config ─────────────────────────────────────────────
@@ -24,15 +24,16 @@ HISTORY_SIZE   = 10
 # ───────────────────────────────────────────────────────
 
 # ── Colors ─────────────────────────────────────────────
-C_BG      = "#0f0f0f"
-C_PANEL   = "#1c1c1c"
-C_GREEN   = "#00dc64"
-C_CYAN    = "#00c8dc"
-C_BLUE    = "#00a5ff"
-C_WHITE   = "#ffffff"
-C_GRAY    = "#555555"
-C_DARK    = "#2a2a2a"
+C_BG    = "#0f0f0f"
+C_PANEL = "#1c1c1c"
+C_GREEN = "#00dc64"
+C_CYAN  = "#00c8dc"
+C_BLUE  = "#00a5ff"
+C_WHITE = "#ffffff"
+C_GRAY  = "#555555"
+C_DARK  = "#2a2a2a"
 # ───────────────────────────────────────────────────────
+
 
 class CameraThread(QThread):
     frame_ready      = pyqtSignal(np.ndarray)
@@ -40,12 +41,11 @@ class CameraThread(QThread):
 
     def __init__(self, model):
         super().__init__()
-        self.model = model
-        self.running = True
+        self.model             = model
+        self.running           = True
         self.prediction_buffer = deque(maxlen=BUFFER_SIZE)
-        self.hold_counter = 0
-        self.last_added = None
-        self.confirmed_letter = pyqtSignal(str)
+        self.hold_counter      = 0
+        self.last_added        = None
 
     def run(self):
         cap = cv2.VideoCapture(0)
@@ -62,8 +62,8 @@ class CameraThread(QThread):
                 if not ret:
                     continue
 
-                frame = cv2.flip(frame, 1)
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame   = cv2.flip(frame, 1)
+                rgb     = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = hands.process(rgb)
 
                 prediction = ""
@@ -78,11 +78,11 @@ class CameraThread(QThread):
                         mp_styles.get_default_hand_connections_style()
                     )
 
-                    features = extract_features(hand_lm)
+                    features    = extract_features(hand_lm)
                     features_np = np.array(features).reshape(1, -1)
-                    proba = self.model.predict_proba(features_np)[0]
-                    confidence = float(np.max(proba))
-                    raw_pred = self.model.classes_[np.argmax(proba)]
+                    proba       = self.model.predict_proba(features_np)[0]
+                    confidence  = float(np.max(proba))
+                    raw_pred    = self.model.classes_[np.argmax(proba)]
 
                     self.prediction_buffer.append(raw_pred)
 
@@ -99,39 +99,34 @@ class CameraThread(QThread):
                         self.hold_counter += 1
                     else:
                         self.hold_counter = 0
-                        self.last_added = None
-
+                        self.last_added   = None
                 else:
                     self.hold_counter = 0
-                    self.last_added = None
+                    self.last_added   = None
 
                 self.frame_ready.emit(frame)
-                self.prediction_ready.emit(prediction, confidence,
-                                           self.hold_counter)
+                self.prediction_ready.emit(prediction, confidence, self.hold_counter)
 
         cap.release()
 
     def confirm_letter(self, letter):
-        self.last_added = letter
-        self.hold_counter = 0
+        self.last_added        = letter
+        self.hold_counter      = 0
         self.prediction_buffer.clear()
 
     def stop(self):
         self.running = False
         self.wait()
 
+
 class SettingsPanel(QWidget):
     settings_applied = pyqtSignal(float, int, int, str)
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedWidth(280)
-        self.setStyleSheet(f"""
-            QWidget {{
-                background: #141414;
-                border-left: 3px solid {C_GREEN};
-            }}
-        """)
+        self.setWindowFlags(Qt.Widget)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_GREEN};")
         self._build()
 
     def _build(self):
@@ -139,7 +134,7 @@ class SettingsPanel(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(16)
 
-        # HEADER
+        # Header
         header_row = QHBoxLayout()
         title = QLabel("SETTINGS")
         title.setFont(QFont("Courier New", 14, QFont.Bold))
@@ -162,10 +157,10 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
-        # MODEL FILE
+        # Model file
         layout.addWidget(self._label("MODEL FILE"))
         model_row = QHBoxLayout()
-        self.model_input= QLabel("az_model.pkl")
+        self.model_input = QLabel("az_model.pkl")
         self.model_input.setFont(QFont("Courier New", 11))
         self.model_input.setStyleSheet(f"""
             background: #1c1c1c; color: {C_WHITE};
@@ -189,7 +184,7 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
-                # ── Confidence slider ──────────────────────────
+        # Confidence slider
         conf_row = QHBoxLayout()
         conf_row.addWidget(self._label("CONFIDENCE THRESHOLD"))
         self.conf_val = QLabel("55%")
@@ -197,16 +192,12 @@ class SettingsPanel(QWidget):
         self.conf_val.setStyleSheet(f"color: {C_GREEN}; border: none;")
         conf_row.addWidget(self.conf_val)
         layout.addLayout(conf_row)
-
         self.conf_slider = QSlider(Qt.Horizontal)
         self.conf_slider.setRange(10, 95)
         self.conf_slider.setValue(55)
         self.conf_slider.setStyleSheet(self._slider_style(C_GREEN))
-        self.conf_slider.valueChanged.connect(
-            lambda v: self.conf_val.setText(f"{v}%")
-        )
+        self.conf_slider.valueChanged.connect(lambda v: self.conf_val.setText(f"{v}%"))
         layout.addWidget(self.conf_slider)
-
         hint = QHBoxLayout()
         hint.addWidget(self._hint("0% (lenient)"))
         hint.addStretch()
@@ -215,7 +206,7 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
-        # ── Hold frames slider ─────────────────────────
+        # Hold slider
         hold_row = QHBoxLayout()
         hold_row.addWidget(self._label("HOLD SPEED"))
         self.hold_val = QLabel("20 frames")
@@ -223,16 +214,12 @@ class SettingsPanel(QWidget):
         self.hold_val.setStyleSheet(f"color: {C_CYAN}; border: none;")
         hold_row.addWidget(self.hold_val)
         layout.addLayout(hold_row)
-
         self.hold_slider = QSlider(Qt.Horizontal)
         self.hold_slider.setRange(5, 40)
         self.hold_slider.setValue(20)
         self.hold_slider.setStyleSheet(self._slider_style(C_CYAN))
-        self.hold_slider.valueChanged.connect(
-            lambda v: self.hold_val.setText(f"{v} frames")
-        )
+        self.hold_slider.valueChanged.connect(lambda v: self.hold_val.setText(f"{v} frames"))
         layout.addWidget(self.hold_slider)
-
         hint2 = QHBoxLayout()
         hint2.addWidget(self._hint("5 (fast)"))
         hint2.addStretch()
@@ -241,7 +228,7 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
-        # ── Buffer size slider ─────────────────────────
+        # Buffer slider
         buf_row = QHBoxLayout()
         buf_row.addWidget(self._label("SMOOTHING BUFFER"))
         self.buf_val = QLabel("10 frames")
@@ -249,16 +236,12 @@ class SettingsPanel(QWidget):
         self.buf_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
         buf_row.addWidget(self.buf_val)
         layout.addLayout(buf_row)
-
         self.buf_slider = QSlider(Qt.Horizontal)
         self.buf_slider.setRange(3, 20)
         self.buf_slider.setValue(10)
         self.buf_slider.setStyleSheet(self._slider_style(C_BLUE))
-        self.buf_slider.valueChanged.connect(
-            lambda v: self.buf_val.setText(f"{v} frames")
-        )
+        self.buf_slider.valueChanged.connect(lambda v: self.buf_val.setText(f"{v} frames"))
         layout.addWidget(self.buf_slider)
-
         hint3 = QHBoxLayout()
         hint3.addWidget(self._hint("3 (fast)"))
         hint3.addStretch()
@@ -267,7 +250,7 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
-        # ── Apply button ───────────────────────────────
+        # Apply button
         apply_btn = QPushButton("APPLY SETTINGS")
         apply_btn.setFixedHeight(44)
         apply_btn.setStyleSheet(f"""
@@ -282,34 +265,22 @@ class SettingsPanel(QWidget):
         apply_btn.clicked.connect(self._apply)
         layout.addWidget(apply_btn)
 
-        # ── Reset + Close ──────────────────────────────
+        # Reset + Close
         btn_row = QHBoxLayout()
-        reset_btn = QPushButton("RESET")
-        reset_btn.setFixedHeight(34)
-        reset_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: #1c1c1c; color: {C_GRAY};
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 11px;
-            }}
-            QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
-        """)
-        reset_btn.clicked.connect(self._reset)
-        close_btn2 = QPushButton("CLOSE")
-        close_btn2.setFixedHeight(34)
-        close_btn2.setStyleSheet(f"""
-            QPushButton {{
-                background: #1c1c1c; color: {C_GRAY};
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 11px;
-            }}
-            QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
-        """)
-        close_btn2.clicked.connect(self.hide)
-        btn_row.addWidget(reset_btn)
-        btn_row.addWidget(close_btn2)
+        for text, slot in [("RESET", self._reset), ("CLOSE", self.hide)]:
+            btn = QPushButton(text)
+            btn.setFixedHeight(34)
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: #1c1c1c; color: {C_GRAY};
+                    border: none; border-radius: 6px;
+                    font-family: 'Courier New'; font-size: 11px;
+                }}
+                QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
+            """)
+            btn.clicked.connect(slot)
+            btn_row.addWidget(btn)
         layout.addLayout(btn_row)
-
         layout.addStretch()
 
     def _label(self, text):
@@ -321,9 +292,9 @@ class SettingsPanel(QWidget):
     def _hint(self, text):
         lbl = QLabel(text)
         lbl.setFont(QFont("Courier New", 9))
-        lbl.setStyleSheet(f"color: #444; border: none;")
+        lbl.setStyleSheet("color: #444; border: none;")
         return lbl
-    
+
     def _divider(self, layout):
         line = QWidget()
         line.setFixedHeight(1)
@@ -354,9 +325,9 @@ class SettingsPanel(QWidget):
             self._model_path = path
 
     def _apply(self):
-        confidence = self.conf_slider.value() / 100.0
-        hold = self.hold_slider.value()
-        buffer = self.buf_slider.value()
+        confidence       = self.conf_slider.value() / 100.0
+        hold             = self.hold_slider.value()
+        buffer           = self.buf_slider.value()
         self._model_path = getattr(self, '_model_path',
                                    f"models/{self.model_input.text()}")
         self.settings_applied.emit(confidence, hold, buffer, self._model_path)
@@ -372,42 +343,17 @@ class SettingsPanel(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def _toggle_settings(self):
-        if self.settings_panel.isVisible():
-            self.settings_panel.hide()
-        else:
-            self._reposition_settings()
-            self.settings_panel.show()
-            self.settings_panel.raise_()
-
-    def _reposition_settings(self):
-        self.settings_panel.move(self.width() - 280, 0)
-
-    def _apply_settings(self, confidence, hold, buffer, model_path):
-        global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE
-        CONFIDENCE_MIN = confidence
-        HOLD_FRAMES = hold
-        BUFFER_SIZE = buffer
-        self.hold_bar.setRange(0, hold)
-        self.camera_thread.prediction_buffer = __import__('collections').deque(maxlen=buffer)
-        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer}")
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if hasattr(self, 'settings_panel'):
-            self._reposition_settings()
-            
     def __init__(self):
         super().__init__()
-        self.model = joblib.load(MODEL_FILE)
-        self.engine = pyttsx3.init()
+        self.model          = joblib.load(MODEL_FILE)
+        self.engine         = pyttsx3.init()
         self.engine.setProperty('rate', 150)
-        self.current_word = []
-        self.sentence = []
+        self.current_word   = []
+        self.sentence       = []
         self.letter_history = deque(maxlen=HISTORY_SIZE)
         self.last_prediction = ""
         self.last_confidence = 0.0
-        self.last_hold = 0
+        self.last_hold       = 0
 
         self.setWindowTitle("AzSL Recognition")
         self.showFullScreen()
@@ -416,11 +362,10 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._setup_shortcuts()
 
+        # Settings panel — created AFTER showFullScreen so geometry is correct
         self.settings_panel = SettingsPanel(self)
         self.settings_panel.settings_applied.connect(self._apply_settings)
         self.settings_panel.hide()
-        self._reposition_settings()
-
 
         self.camera_thread = CameraThread(self.model)
         self.camera_thread.frame_ready.connect(self.update_frame)
@@ -434,13 +379,28 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(10)
 
-        # ── Title bar ──────────────────────────────────
+        # Title bar
         title_bar = QHBoxLayout()
         title = QLabel("AzSL Recognition")
         title.setFont(QFont("Courier New", 14))
         title.setStyleSheet(f"color: {C_GRAY};")
         title_bar.addWidget(title)
         title_bar.addStretch()
+
+        # Settings button — added BEFORE root.addLayout
+        settings_btn = QPushButton("⚙  Settings")
+        settings_btn.setFixedSize(110, 32)
+        settings_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #2a2a2a; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #3a3a3a; }}
+        """)
+        settings_btn.clicked.connect(self._toggle_settings)
+        title_bar.addWidget(settings_btn)
+
         quit_btn = QPushButton("✕  Quit")
         quit_btn.setFixedSize(90, 32)
         quit_btn.setStyleSheet(f"""
@@ -455,25 +415,10 @@ class MainWindow(QMainWindow):
         title_bar.addWidget(quit_btn)
         root.addLayout(title_bar)
 
-         # ── gear button ─────────────────────────────────
-        settings_btn = QPushButton("⚙  Settings")
-        settings_btn.setFixedSize(110, 32)
-        settings_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: #2a2a2a; color: {C_GRAY};
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 12px;
-            }}
-            QPushButton:hover {{ color: {C_WHITE}; background: #3a3a3a; }}
-        """)
-        settings_btn.clicked.connect(self._toggle_settings)
-        title_bar.addWidget(settings_btn)
-
-        # ── Main row ───────────────────────────────────
+        # Main row
         main_row = QHBoxLayout()
         main_row.setSpacing(12)
 
-        # Webcam — 65% of width
         self.cam_label = QLabel()
         self.cam_label.setMinimumSize(700, 480)
         self.cam_label.setStyleSheet(f"""
@@ -485,18 +430,13 @@ class MainWindow(QMainWindow):
         self.cam_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         main_row.addWidget(self.cam_label, 65)
 
-        # Right panel — 35% of width
         right = QVBoxLayout()
         right.setSpacing(10)
 
-        # ── Big letter box ─────────────────────────────
+        # Letter box
         letter_panel = QWidget()
         letter_panel.setMinimumHeight(220)
-        letter_panel.setStyleSheet(f"""
-            background: {C_PANEL};
-            border-radius: 12px;
-            border: 1px solid #2a2a2a;
-        """)
+        letter_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         letter_layout = QVBoxLayout(letter_panel)
         letter_layout.setContentsMargins(16, 12, 16, 12)
         lbl_title = QLabel("DETECTED LETTER")
@@ -511,14 +451,10 @@ class MainWindow(QMainWindow):
         letter_layout.addWidget(self.letter_label)
         right.addWidget(letter_panel)
 
-        # ── Confidence bar ─────────────────────────────
+        # Confidence bar
         conf_panel = QWidget()
         conf_panel.setMinimumHeight(80)
-        conf_panel.setStyleSheet(f"""
-            background: {C_PANEL};
-            border-radius: 12px;
-            border: 1px solid #2a2a2a;
-        """)
+        conf_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         conf_layout = QVBoxLayout(conf_panel)
         conf_layout.setContentsMargins(16, 10, 16, 10)
         conf_lbl = QLabel("CONFIDENCE")
@@ -530,31 +466,19 @@ class MainWindow(QMainWindow):
         self.conf_bar.setFixedHeight(28)
         self.conf_bar.setStyleSheet(f"""
             QProgressBar {{
-                background: {C_DARK};
-                border-radius: 6px;
-                border: none;
-                color: #000;
-                font-family: 'Courier New';
-                font-size: 12px;
-                font-weight: bold;
+                background: {C_DARK}; border-radius: 6px; border: none;
+                color: #000; font-family: 'Courier New'; font-size: 12px; font-weight: bold;
             }}
-            QProgressBar::chunk {{
-                background: {C_GREEN};
-                border-radius: 6px;
-            }}
+            QProgressBar::chunk {{ background: {C_GREEN}; border-radius: 6px; }}
         """)
         conf_layout.addWidget(conf_lbl)
         conf_layout.addWidget(self.conf_bar)
         right.addWidget(conf_panel)
 
-        # ── Hold progress bar ──────────────────────────
+        # Hold bar
         hold_panel = QWidget()
         hold_panel.setMinimumHeight(80)
-        hold_panel.setStyleSheet(f"""
-            background: {C_PANEL};
-            border-radius: 12px;
-            border: 1px solid #2a2a2a;
-        """)
+        hold_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         hold_layout = QVBoxLayout(hold_panel)
         hold_layout.setContentsMargins(16, 10, 16, 10)
         hold_lbl = QLabel("HOLD PROGRESS")
@@ -566,27 +490,18 @@ class MainWindow(QMainWindow):
         self.hold_bar.setFixedHeight(28)
         self.hold_bar.setStyleSheet(f"""
             QProgressBar {{
-                background: {C_DARK};
-                border-radius: 6px;
-                border: none;
+                background: {C_DARK}; border-radius: 6px; border: none;
             }}
-            QProgressBar::chunk {{
-                background: {C_CYAN};
-                border-radius: 6px;
-            }}
+            QProgressBar::chunk {{ background: {C_CYAN}; border-radius: 6px; }}
         """)
         hold_layout.addWidget(hold_lbl)
         hold_layout.addWidget(self.hold_bar)
         right.addWidget(hold_panel)
 
-        # ── Letter history ─────────────────────────────
+        # History
         hist_panel = QWidget()
         hist_panel.setMinimumHeight(80)
-        hist_panel.setStyleSheet(f"""
-            background: {C_PANEL};
-            border-radius: 12px;
-            border: 1px solid #2a2a2a;
-        """)
+        hist_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         hist_layout = QVBoxLayout(hist_panel)
         hist_layout.setContentsMargins(16, 10, 16, 10)
         hist_lbl = QLabel("HISTORY")
@@ -603,14 +518,10 @@ class MainWindow(QMainWindow):
         main_row.addLayout(right, 35)
         root.addLayout(main_row, 1)
 
-        # ── Word row ───────────────────────────────────
+        # Word row
         word_panel = QWidget()
         word_panel.setFixedHeight(64)
-        word_panel.setStyleSheet(f"""
-            background: {C_PANEL};
-            border-radius: 10px;
-            border: 1px solid #2a2a2a;
-        """)
+        word_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
         word_row = QHBoxLayout(word_panel)
         word_row.setContentsMargins(20, 0, 20, 0)
         word_lbl = QLabel("WORD")
@@ -625,16 +536,12 @@ class MainWindow(QMainWindow):
         word_row.addStretch()
         root.addWidget(word_panel)
 
-        # ── Sentence row ───────────────────────────────
+        # Sentence row
         sent_row = QHBoxLayout()
         sent_row.setSpacing(10)
         sent_panel = QWidget()
         sent_panel.setFixedHeight(64)
-        sent_panel.setStyleSheet(f"""
-            background: {C_PANEL};
-            border-radius: 10px;
-            border: 1px solid #2a2a2a;
-        """)
+        sent_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
         sent_layout = QHBoxLayout(sent_panel)
         sent_layout.setContentsMargins(20, 0, 20, 0)
         sent_lbl = QLabel("SENTENCE")
@@ -664,7 +571,7 @@ class MainWindow(QMainWindow):
         sent_row.addWidget(speak_btn)
         root.addLayout(sent_row)
 
-        # ── Controls bar ───────────────────────────────
+        # Controls bar
         controls = QLabel(
             "SPACE = confirm word     BACKSPACE = delete letter     C = clear all     ESC = quit"
         )
@@ -680,11 +587,41 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Return"), self, self.speak_sentence)
         QShortcut(QKeySequence("c"), self, self.clear_all)
 
+    def _toggle_settings(self):
+        if self.settings_panel.isVisible():
+            self.settings_panel.hide()
+        else:
+            self._reposition_settings()
+            self.settings_panel.raise_()
+            self.settings_panel.show()
+            
+    def _reposition_settings(self):
+        panel_w = 320
+        panel_h = self.height()
+        screen_x = self.width() - panel_w
+        self.settings_panel.setGeometry(screen_x, 0, panel_w, panel_h)
+        self.settings_panel.setFixedSize(panel_w, self.height())
+        self.settings_panel.move(self.width() - panel_w, 0)
+
+    def _apply_settings(self, confidence, hold, buffer, model_path):
+        global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE
+        CONFIDENCE_MIN = confidence
+        HOLD_FRAMES    = hold
+        BUFFER_SIZE    = buffer
+        self.hold_bar.setRange(0, hold)
+        self.camera_thread.prediction_buffer = deque(maxlen=buffer)
+        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer}")
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'settings_panel') and self.settings_panel.isVisible():
+            self._reposition_settings()
+
     def update_frame(self, frame):
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb   = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
-        img = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
-        pix = QPixmap.fromImage(img).scaled(
+        img   = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
+        pix   = QPixmap.fromImage(img).scaled(
             self.cam_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
         self.cam_label.setPixmap(pix)
@@ -692,11 +629,11 @@ class MainWindow(QMainWindow):
     def update_prediction(self, prediction, confidence, hold_counter):
         self.last_prediction = prediction
         self.last_confidence = confidence
-        self.last_hold = hold_counter
+        self.last_hold       = hold_counter
 
         if prediction:
             self.letter_label.setText(prediction)
-            conf_pct = int(confidence * 100)
+            conf_pct  = int(confidence * 100)
             self.conf_bar.setValue(conf_pct)
             self.conf_bar.setFormat(f"{conf_pct}%")
             color = C_GREEN if confidence > 0.75 else "#00a5ff"
@@ -714,7 +651,6 @@ class MainWindow(QMainWindow):
                 self.letter_history.append(prediction)
                 self.camera_thread.confirm_letter(prediction)
                 self._refresh_display()
-
         else:
             self.letter_label.setText("—")
             self.conf_bar.setValue(0)
@@ -723,8 +659,9 @@ class MainWindow(QMainWindow):
     def _refresh_display(self):
         self.word_label.setText("".join(self.current_word) or "...")
         sentence_str = " ".join(self.sentence)
-        self.sent_label.setText(sentence_str[-50:] if len(sentence_str) > 50
-                                else sentence_str or "...")
+        self.sent_label.setText(
+            sentence_str[-50:] if len(sentence_str) > 50 else sentence_str or "..."
+        )
         self.history_label.setText(
             "  ".join(list(self.letter_history)) or "—"
         )
