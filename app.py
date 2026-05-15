@@ -39,9 +39,9 @@ class CameraThread(QThread):
     frame_ready      = pyqtSignal(np.ndarray)
     prediction_ready = pyqtSignal(str, float, int)
 
-    def __init__(self, model):
+    def __init__(self, model=None):
         super().__init__()
-        self.model             = model
+        self.model             = model if model is not None else joblib.load(MODEL_FILE)
         self.running           = True
         self.prediction_buffer = deque(maxlen=BUFFER_SIZE)
         self.hold_counter      = 0
