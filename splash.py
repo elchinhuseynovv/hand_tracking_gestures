@@ -21,7 +21,7 @@ class LoaderThread(QThread):
     def run(self):
         import time
 
-        self.progress.emit(30, "Initializing...")
+        self.progress.emit(10, "Initializing...")
         time.sleep(0.4)
 
         self.progress.emit(30, "Loadning MediaPipe...")
@@ -92,6 +92,14 @@ class SplashScreen(QWidget):
         layout.addWidget(title)
 
         layout.addSpacing(4)
+        
+        # Subtitle
+        subtitle = QLabel("Azerbaijani Sign Language · Real-time Detection")
+        subtitle.setFont(QFont("Courier New", 10))
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet(f"color: {C_GRAY}; border: none; background: transparent;")
+        layout.addWidget(subtitle)
+        layout.addSpacing(32)
 
         # Progress bar
         self.progress_bar = QProgressBar()
@@ -145,7 +153,7 @@ class SplashScreen(QWidget):
         self.progress_bar.setValue(value)
         self.status_label.setText(message)
         self.status_label.setStyleSheet(
-            f"color: {C_GREEN if value == 100 else C_GRAY}: border: none; background: transparent;"
+            f"color: {C_GREEN if value == 100 else C_GRAY}; border: none; background: transparent;"
         )
         
     def _on_loaded(self, model):
