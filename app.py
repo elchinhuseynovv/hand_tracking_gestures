@@ -343,9 +343,9 @@ class SettingsPanel(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, model=None):
         super().__init__()
-        self.model          = joblib.load(MODEL_FILE)
+        self.model          = model if model is not None else joblib.load(MODEL_FILE)
         self.engine         = pyttsx3.init()
         self.engine.setProperty('rate', 150)
         self.current_word   = []
