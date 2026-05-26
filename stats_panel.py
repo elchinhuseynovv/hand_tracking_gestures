@@ -168,3 +168,94 @@ class StatsPanel(QWidget):
         """)
         reset_btn.clicked.connect(self._reset_stats)
         layout.addWidget(reset_btn)
+
+    def _stat_box(self, value, label):
+        box = QWidget()
+        box.setStyleSheet(f"""
+            background: {C_PANEL};
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+        """)
+        box_layout = QVBoxLayout(box)
+        box_layout.setContentsMargins(10, 8, 10, 8)
+        box_layout.setSpacing(2)
+
+        val_lbl = QLabel(value)
+        val_lbl.setFont(QFont("Courier New", 18, QFont.Bold))
+        val_lbl.setStyleSheet(f"color: {C_CYAN}; border: none;")
+        val_lbl.setAlignment(Qt.AlignCenter)
+
+        box_layout.addWidget(val_lbl)
+        box_layout.addWidget(key_lbl)
+        box._value_label = val_lbl
+        return box
+    
+    def _divider(self, layout);
+        line = QWidget()
+        line.setFixedHeight(1)
+        line.setStyleSheet("background: #2a2a2a; border: none;")
+        layout.addWidget(line)
+
+    # Public methods called from MainWindow
+    def record_letter(self, letter):
+        self.letter_counts[letter] += 1
+        self.total_letters += 1
+        self._refresh_bars()
+        self._refresh_overview()
+
+    def record_word(self):
+        self.total_words += 1
+        self._refresh_overview()
+
+    def record_prediction(self, predicted, actual=None)
+        if predicted:
+            self.prediction_total[predicted] += 1
+
+    # Internal refresh methods
+    def _refresh_bars(self):
+        if not self.letter_counts:
+            return
+        max_count = max(self.letter_counts.values()) or 1
+        for letter, (bar, count_lbl) in self.letter_bars,items():
+            count = self.letter_counts.get(letter, 0)
+            pct = int((count / max_count) * 100)
+            bar.setValue(pct)
+            count_lbl.setText(str(count))
+
+            if pct > 66:
+                color = C_GREEN
+            elif pct > 33:
+                color = C_CYAN
+            else:
+                color = C_BLUE
+            bar.setStyleSheet(f"""
+                QProgressBar {{
+                    background: {C_DARK};
+                    border-radius: 4px; border: none;
+                }}
+                QProgressBar::chunk {{
+                    background: {color};
+                    border-radius: 4px;
+                }}
+            """)
+        
+        def _refresh_overview(self):
+            self.letters_box._value_label.setText(str(self.total_letters))
+            self.words_box._value_labe.setText(str(self.total_words))
+
+        def _refresh_time(self):
+            elapsed = int(time.time() - self.sessions_start)
+            mins = elapsed // 60
+            secs = elapsed % 60
+            self.time_box._value_label.setText(f"{mins:02d}:{secs:02d}")
+
+        def _reset_stats(self):
+            self.session_start = time.time()
+            self.letter_counts = defaultdict(int)
+            self.prediction_total = defaultdict(int)
+            self.total_letters = 0
+            self.total_words = 0
+            for letter, (bar, count_lbl) in self.letter_bars.items():
+                bar.setValue(0)
+                count_lbl.setText("0")
+            self._refresh_overview()

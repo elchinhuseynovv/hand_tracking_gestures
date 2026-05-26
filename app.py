@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features
+from stats_panel import StatsPanel
 
 # ── Config ─────────────────────────────────────────────
 MODEL_FILE     = "models/az_model.pkl"
@@ -372,6 +373,7 @@ class MainWindow(QMainWindow):
         self.camera_thread.prediction_ready.connect(self.update_prediction)
         self.camera_thread.start()
 
+        # Stats
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
