@@ -42,7 +42,7 @@ class StatsPanel(QWidget):
     def _build(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing()
+        layout.setSpacing(12)
 
         # Header
         header_row = QHBoxLayout()
@@ -184,13 +184,18 @@ class StatsPanel(QWidget):
         val_lbl.setFont(QFont("Courier New", 18, QFont.Bold))
         val_lbl.setStyleSheet(f"color: {C_CYAN}; border: none;")
         val_lbl.setAlignment(Qt.AlignCenter)
+        
+        key_lbl = QLabel(label)
+        key_lbl.setFont(QFont("Courier New", 9))
+        key_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        key_lbl.setAlignment(Qt.AlignCenter)
 
         box_layout.addWidget(val_lbl)
         box_layout.addWidget(key_lbl)
         box._value_label = val_lbl
         return box
     
-    def _divider(self, layout);
+    def _divider(self, layout):
         line = QWidget()
         line.setFixedHeight(1)
         line.setStyleSheet("background: #2a2a2a; border: none;")
@@ -207,7 +212,7 @@ class StatsPanel(QWidget):
         self.total_words += 1
         self._refresh_overview()
 
-    def record_prediction(self, predicted, actual=None)
+    def record_prediction(self, predicted, actual=None):
         if predicted:
             self.prediction_total[predicted] += 1
 
@@ -216,7 +221,7 @@ class StatsPanel(QWidget):
         if not self.letter_counts:
             return
         max_count = max(self.letter_counts.values()) or 1
-        for letter, (bar, count_lbl) in self.letter_bars,items():
+        for letter, (bar, count_lbl) in self.letter_bars.items():
             count = self.letter_counts.get(letter, 0)
             pct = int((count / max_count) * 100)
             bar.setValue(pct)
@@ -239,23 +244,23 @@ class StatsPanel(QWidget):
                 }}
             """)
         
-        def _refresh_overview(self):
-            self.letters_box._value_label.setText(str(self.total_letters))
-            self.words_box._value_labe.setText(str(self.total_words))
+    def _refresh_overview(self):
+        self.letters_box._value_label.setText(str(self.total_letters))
+        self.words_box._value_labe.setText(str(self.total_words))
 
-        def _refresh_time(self):
+    def _refresh_time(self):
             elapsed = int(time.time() - self.sessions_start)
             mins = elapsed // 60
             secs = elapsed % 60
             self.time_box._value_label.setText(f"{mins:02d}:{secs:02d}")
 
-        def _reset_stats(self):
-            self.session_start = time.time()
-            self.letter_counts = defaultdict(int)
-            self.prediction_total = defaultdict(int)
-            self.total_letters = 0
-            self.total_words = 0
-            for letter, (bar, count_lbl) in self.letter_bars.items():
-                bar.setValue(0)
-                count_lbl.setText("0")
-            self._refresh_overview()
+    def _reset_stats(self):
+        self.session_start = time.time()
+        self.letter_counts = defaultdict(int)
+        self.prediction_total = defaultdict(int)
+        self.total_letters = 0
+        self.total_words = 0
+        for letter, (bar, count_lbl) in self.letter_bars.items():
+            bar.setValue(0)
+            count_lbl.setText("0")
+        self._refresh_overview()

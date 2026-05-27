@@ -373,7 +373,12 @@ class MainWindow(QMainWindow):
         self.camera_thread.prediction_ready.connect(self.update_prediction)
         self.camera_thread.start()
 
-        # Stats
+        # Stats panel
+        self.stats_panel = StatsPanel(self)
+        self.stats_panel.hide()
+        self._reposition_stats()
+
+
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
@@ -389,6 +394,20 @@ class MainWindow(QMainWindow):
         title_bar.addWidget(title)
         title_bar.addStretch()
 
+        # stats button
+        stats_btn = QPushButton("Stats")
+        stats_btn.setFixedSize(100, 32)
+        stats_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #2a2a2a; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #3a3a3a; }}
+        """)
+        stats_btn.clicked.connect(self._toggle_stats)
+        title_bar.addWidget(stats_btn)
+        
         # Settings button — added BEFORE root.addLayout
         settings_btn = QPushButton("⚙  Settings")
         settings_btn.setFixedSize(110, 32)
@@ -596,7 +615,19 @@ class MainWindow(QMainWindow):
             self._reposition_settings()
             self.settings_panel.raise_()
             self.settings_panel.show()
-            
+    
+    def _toggle_stats(self):
+        if self.stats_panel.isVisible():
+            self.stats_panel.hide()
+        else:
+            self._reposition_stats()
+            self.stats_panel.show()
+            self.stats_panel.raise_()
+
+    def _reposition_stats(self):
+        panel_w = 300
+        self.stats_panel.setGeometry(self.width() - panel_w, 0, panel_w, self.height())
+
     def _reposition_settings(self):
         panel_w = 320
         panel_h = self.height()
@@ -618,6 +649,8 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         if hasattr(self, 'settings_panel') and self.settings_panel.isVisible():
             self._reposition_settings()
+        if hasattr(self, 'stats_panel') and self.stats_panel.isVisible():
+            self._reposition_stats()
 
     def update_frame(self, frame):
         rgb   = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -652,6 +685,7 @@ class MainWindow(QMainWindow):
                 self.current_word.append(prediction)
                 self.letter_history.append(prediction)
                 self.camera_thread.confirm_letter(prediction)
+                self.stats_panel.record_letter(prediction)
                 self._refresh_display()
         else:
             self.letter_label.setText("—")
@@ -672,6 +706,7 @@ class MainWindow(QMainWindow):
         if self.current_word:
             self.sentence.append("".join(self.current_word))
             self.current_word = []
+            self.stats_panel.record_word()
             self._refresh_display()
 
     def delete_letter(self):
