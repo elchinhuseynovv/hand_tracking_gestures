@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QPushButton, QScrollArea, QProgressBar)
+                              QPushButton, QScrollArea, QProgressBar)
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
 from collections import defaultdict
@@ -17,24 +17,21 @@ C_AMBER = "#ffb347"
 
 
 class StatsPanel(QWidget):
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(Qt.Widget)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_CYAN};")
 
-        # Session data
-        self.session_start = time.time()
-        self.letter_counts = defaultdict(int)
-        self.letter_counts    = defaultdict(int)   # how many times each letter confirmed
-        self.prediction_hits  = defaultdict(int)   # correct predictions per letter
-        self.prediction_total = defaultdict(int)   # total predictions per letter
-        self.total_letters = 0
-        self.total_words = 0
+        self.session_start    = time.time()
+        self.letter_counts    = defaultdict(int)
+        self.prediction_hits  = defaultdict(int)
+        self.prediction_total = defaultdict(int)
+        self.total_letters    = 0
+        self.total_words      = 0
 
         self._build()
 
-        # Auto refresh every second
         self.timer = QTimer()
         self.timer.timeout.connect(self._refresh_time)
         self.timer.start(1000)
@@ -42,7 +39,7 @@ class StatsPanel(QWidget):
     def _build(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        layout.setSpacing(12) 
 
         # Header
         header_row = QHBoxLayout()
@@ -68,7 +65,6 @@ class StatsPanel(QWidget):
         self._divider(layout)
 
         # Session overview
-
         overview_lbl = QLabel("SESSION OVERVIEW")
         overview_lbl.setFont(QFont("Courier New", 10))
         overview_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
@@ -85,13 +81,12 @@ class StatsPanel(QWidget):
 
         self._divider(layout)
 
-        # Per-letter breakdown\
+        # Per-letter breakdown
         breakdown_lbl = QLabel("LETTER BREAKDOWN")
         breakdown_lbl.setFont(QFont("Courier New", 10))
         breakdown_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         layout.addWidget(breakdown_lbl)
 
-        # Scrollable area for letter bars
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("""
@@ -110,7 +105,6 @@ class StatsPanel(QWidget):
         self.bars_layout.setSpacing(6)
         self.bars_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Create a bar for each letter
         self.letter_bars = {}
         letters = [chr(i) for i in range(ord('A'), ord('Z')+1)]
         for letter in letters:
@@ -128,8 +122,7 @@ class StatsPanel(QWidget):
             bar.setStyleSheet(f"""
                 QProgressBar {{
                     background: {C_DARK};
-                    border-radius: 4px;
-                    border: none;
+                    border-radius: 4px; border: none;
                 }}
                 QProgressBar::chunk {{
                     background: {C_GREEN};
@@ -155,7 +148,6 @@ class StatsPanel(QWidget):
 
         self._divider(layout)
 
-        # ── Reset button ────────────────────────────────
         reset_btn = QPushButton("RESET STATS")
         reset_btn.setFixedHeight(36)
         reset_btn.setStyleSheet(f"""
@@ -184,7 +176,7 @@ class StatsPanel(QWidget):
         val_lbl.setFont(QFont("Courier New", 18, QFont.Bold))
         val_lbl.setStyleSheet(f"color: {C_CYAN}; border: none;")
         val_lbl.setAlignment(Qt.AlignCenter)
-        
+
         key_lbl = QLabel(label)
         key_lbl.setFont(QFont("Courier New", 9))
         key_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
@@ -194,17 +186,16 @@ class StatsPanel(QWidget):
         box_layout.addWidget(key_lbl)
         box._value_label = val_lbl
         return box
-    
+
     def _divider(self, layout):
         line = QWidget()
         line.setFixedHeight(1)
         line.setStyleSheet("background: #2a2a2a; border: none;")
         layout.addWidget(line)
 
-    # Public methods called from MainWindow
     def record_letter(self, letter):
         self.letter_counts[letter] += 1
-        self.total_letters += 1
+        self.total_letters         += 1
         self._refresh_bars()
         self._refresh_overview()
 
@@ -216,17 +207,15 @@ class StatsPanel(QWidget):
         if predicted:
             self.prediction_total[predicted] += 1
 
-    # Internal refresh methods
     def _refresh_bars(self):
         if not self.letter_counts:
             return
         max_count = max(self.letter_counts.values()) or 1
         for letter, (bar, count_lbl) in self.letter_bars.items():
             count = self.letter_counts.get(letter, 0)
-            pct = int((count / max_count) * 100)
+            pct   = int((count / max_count) * 100)
             bar.setValue(pct)
             count_lbl.setText(str(count))
-
             if pct > 66:
                 color = C_GREEN
             elif pct > 33:
@@ -243,23 +232,23 @@ class StatsPanel(QWidget):
                     border-radius: 4px;
                 }}
             """)
-        
+
     def _refresh_overview(self):
         self.letters_box._value_label.setText(str(self.total_letters))
-        self.words_box._value_labe.setText(str(self.total_words))
+        self.words_box._value_label.setText(str(self.total_words))
 
-    def _refresh_time(self):
-            elapsed = int(time.time() - self.sessions_start)
-            mins = elapsed // 60
-            secs = elapsed % 60
-            self.time_box._value_label.setText(f"{mins:02d}:{secs:02d}")
+    def _refresh_time(self):                      
+        elapsed = int(time.time() - self.session_start)
+        mins    = elapsed // 60
+        secs    = elapsed % 60
+        self.time_box._value_label.setText(f"{mins:02d}:{secs:02d}")
 
-    def _reset_stats(self):
-        self.session_start = time.time()
-        self.letter_counts = defaultdict(int)
+    def _reset_stats(self):         
+        self.session_start    = time.time()
+        self.letter_counts    = defaultdict(int)
         self.prediction_total = defaultdict(int)
-        self.total_letters = 0
-        self.total_words = 0
+        self.total_letters    = 0
+        self.total_words      = 0
         for letter, (bar, count_lbl) in self.letter_bars.items():
             bar.setValue(0)
             count_lbl.setText("0")
