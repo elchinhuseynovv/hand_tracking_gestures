@@ -21,7 +21,7 @@ class StatsPanel(QWidget):
         super().__init__(parent)
         self.setWindowFlags(Qt.Widget)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_CYAN};")
+        self.setStyleSheet(f"background: #141414;")
 
         self.session_start    = time.time()
         self.letter_counts    = defaultdict(int)
@@ -40,6 +40,12 @@ class StatsPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12) 
+        
+        accent = QWidget()
+        accent.setFixedHeight(3)
+        accent.setStyleSheet(f"background: {C_CYAN}; border: none;")
+        layout.addWidget(accent)
+
 
         # Header
         header_row = QHBoxLayout()
