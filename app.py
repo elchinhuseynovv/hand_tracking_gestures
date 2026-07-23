@@ -11,7 +11,7 @@ from mediapipe.python.solutions import drawing_styles as mp_styles
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
                              QProgressBar, QSizePolicy, QShortcut, QSlider)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features
 from stats_panel import StatsPanel
@@ -363,7 +363,6 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._setup_shortcuts()
 
-        # Settings panel — created AFTER showFullScreen so geometry is correct
         self.settings_panel = SettingsPanel(self)
         self.settings_panel.settings_applied.connect(self._apply_settings)
         self.settings_panel.hide()
@@ -592,9 +591,23 @@ class MainWindow(QMainWindow):
         sent_row.addWidget(speak_btn)
         root.addLayout(sent_row)
 
+        export_btn = QPushButton("EXPORT")
+        export_btn.setFixedSize(110, 64)
+        export_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {C_DARK}; color: {C_WHITE};
+                border: none; border-radius: 10px;
+                font-family: 'Courier New'; font-size: 14px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background: #3a3a3a; }}
+            QPushButton:pressed {{ background: #2a2a2a; }}
+        """)
+        export_btn.clicked.connect(self.export_session)
+        sent_row.addWidget(export_btn)
+
         # Controls bar
         controls = QLabel(
-            "SPACE = confirm word     BACKSPACE = delete letter     C = clear all     ESC = quit"
+            "SPACE = confirm word     BACKSPACE = delete letter     C = clear all     Ctrl+E = export     ESC = quit"
         )
         controls.setFont(QFont("Courier New", 10))
         controls.setStyleSheet(f"color: {C_GRAY};")
@@ -607,6 +620,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Backspace"), self, self.delete_letter)
         QShortcut(QKeySequence("Return"), self, self.speak_sentence)
         QShortcut(QKeySequence("c"), self, self.clear_all)
+        QShortcut(QKeySequence("Ctrl+E"), self, self.export_session)
 
     def _toggle_settings(self):
         if self.settings_panel.isVisible():
@@ -731,6 +745,44 @@ class MainWindow(QMainWindow):
             threading.Thread(target=_speak, daemon=True).start()
             print(f"Speaking: {full}")
 
+    def export_session(self):
+        from datetime import datetime
+        import os
+
+        os.makedirs("exports", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filepath = f"exports/session_{timestamp}.txt"
+
+        full_sentence = " ".join(self.sentence)
+        if self.current_word:
+            full_sentence += (" " if full_sentence else "") + "".join(self.current_word)
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write("AzSl Recognition - Session Export\n")
+            f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 40 + "\n\n")
+            f.write("TRANSCRIPT:\n")
+            f.write(full_sentence if full_sentence else "(empty)")
+            f.write("\n\n")
+            f.write("=" * 40 + "\n")
+            f.write(f"Words completed: {len(self.sentence)}\n")
+            f.write(f"Letters signed: {len(self.letter_history)}\n")
+
+        print(f"Session exported to: {filepath}")
+        self._show_export_toast(filepath)
+
+    def _show_export_toast(self, filepath):
+        toast = QLabel(f"Saved to {filepath}", self)
+        toast.setFont(QFont("Courier New", 11))
+        toast.setStyleSheet(f"""
+            background: {C_GREEN}; color: #000;
+            padding: 10px 16px; border-radius: 8px;
+        """)
+        toast.adjustSize()
+        toast.move((self.width() - toast.width()) // 2, self.height() - 140)
+        toast.show()
+        QTimer.singleShot(2500, toast.deleteLater)
+         
     def closeEvent(self, event):
         self.camera_thread.stop()
         event.accept()
