@@ -261,7 +261,7 @@ class SettingsPanel(QWidget):
         sound_row.addWidget(self.sound_val)
         layout.addLayout(sound_row)
 
-        self.sound_slider = QSlider(QT.Horizontal)
+        self.sound_slider = QSlider(Qt.Horizontal)
         self.sound_slider.setRange(0, 100)
         self.sound_slider.setValue(70)
         self.sound_slider.setStyleSheet(self._slider_style(C_GREEN))

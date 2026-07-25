@@ -1,8 +1,7 @@
 import pygame
 import numpy as np
-import os
 
-pygame.mixer.init(frequency=44100, size=16, channels=1)
+pygame.mixer.init(frequency=44100, size=-16, channels=2)
 
 def _generate_tone(frequency, duration_ms, volume=0.3, fade_ms=20):
     sample_rate = 44100
@@ -17,11 +16,12 @@ def _generate_tone(frequency, duration_ms, volume=0.3, fade_ms=20):
     tone[-fade_samples:] *= fade_out
 
     audio = (tone * volume * 32767).astype(np.int16)
-    return pygame.sndarray.make_sound(audio)
+    stereo_audio = np.ascontiguousarray(np.column_stack((audio, audio)))
+    return pygame.sndarray.make_sound(stereo_audio)
 
-_letter_confirm = _generate_tone(800, 90, volume=0.25) #high short beep
-_word_complete = _generate_tone(660, 140, volume=0.3) # medium chime
-_error_sound = _generate_tone(220, 100, volume=0.2) # low buzz
+_letter_confirm = _generate_tone(880, 90, volume=0.25)
+_word_complete  = _generate_tone(660, 140, volume=0.3)
+_error_sound    = _generate_tone(220, 100, volume=0.2)
 
 _muted = False
 _volume = 0.7
@@ -37,11 +37,6 @@ def set_volume(vol: float):
 def play_letter_confirm():
     if not _muted:
         _letter_confirm.set_volume(_volume)
-        _letter_confirm.play()
-
-def play_word_complete():
-    if not _muted:
-        _word_complete.set_volume(_volume)
         _letter_confirm.play()
 
 def play_word_complete():
