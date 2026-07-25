@@ -14,7 +14,7 @@ def _generate_tone(frequency, duration_ms, volume=0.3, fade_ms=20):
     fade_in = np.linspace(0, 1, fade_samples)
     fade_out = np.linspace(1, 0, fade_samples)
     tone[:fade_samples] *= fade_in
-    tone[-fade_samples] *= fade_out
+    tone[-fade_samples:] *= fade_out
 
     audio = (tone * volume * 32767).astype(np.int16)
     return pygame.sndarray.make_sound(audio)

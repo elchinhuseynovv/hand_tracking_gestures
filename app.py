@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import pyttsx3
 import threading
+import sounds
 from collections import deque
 from mediapipe.python.solutions import hands as mp_hands_module
 from mediapipe.python.solutions import drawing_utils as mp_draw
@@ -251,6 +252,38 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
+        #Sound section
+        sound_row = QHBoxLayout()
+        sound_row.addWidget(self._label("SOUND VOLUME"))
+        self.sound_val = QLabel("70%")
+        self.sound_val.setFont(QFont("Courier New", 11))
+        self.sound_val.setStyleSheet(f"color: {C_GREEN}; border:none;")
+        sound_row.addWidget(self.sound_val)
+        layout.addLayout(sound_row)
+
+        self.sound_slider = QSlider(QT.Horizontal)
+        self.sound_slider.setRange(0, 100)
+        self.sound_slider.setValue(70)
+        self.sound_slider.setStyleSheet(self._slider_style(C_GREEN))
+        self.sound_slider.valueChanged.connect(self._on_volume_change)
+        layout.addWidget(self.sound_slider)
+
+        self.mute_btn = QPushButton("Sound ON")
+        self.mute_btn.setFixedHeight(36)
+        self.mute_btn.setCheckable(True)
+        self.mute_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {C_DARK}; color: {C_WHITE};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:checked {{ background: #ff5f57; color: #000; }}
+        """)
+        self.mute_btn.clicked.connect(self._toggle_mute)
+        layout.addWidget(self.mute_btn)
+
+        self._divider(layout)
+
         # Apply button
         apply_btn = QPushButton("APPLY SETTINGS")
         apply_btn.setFixedHeight(44)
@@ -342,6 +375,15 @@ class SettingsPanel(QWidget):
         if hasattr(self, '_model_path'):
             del self._model_path
 
+    def _on_volume_change(self, value):
+        import sounds
+        self.sound_val.setText(f"{value}%")
+        sounds.set_volume(value / 100.0)
+
+    def _toggle_mute(self, checked):
+        import sounds
+        sounds.set_muted(checked)
+        self.mute_btn.setText("Sound OFF" if checked else "Sound ON")
 
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
@@ -699,6 +741,7 @@ class MainWindow(QMainWindow):
                 self.current_word.append(prediction)
                 self.letter_history.append(prediction)
                 self.camera_thread.confirm_letter(prediction)
+                sounds.play_letter_confirm()
                 self.stats_panel.record_letter(prediction)
                 self._refresh_display()
         else:
@@ -720,6 +763,7 @@ class MainWindow(QMainWindow):
         if self.current_word:
             self.sentence.append("".join(self.current_word))
             self.current_word = []
+            sounds.play_word_complete()
             self.stats_panel.record_word()
             self._refresh_display()
 
