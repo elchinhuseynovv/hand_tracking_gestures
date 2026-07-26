@@ -401,7 +401,7 @@ class SettingsPanel(QWidget):
         camera_index = self.get_selected_camera()
         self._model_path = getattr(self, '_model_path',
                                    f"models/{self.model_input.text()}")
-        self.settings_applied.emit(confidence, hold, buffer, self._model_path)
+        self.settings_applied.emit(confidence, hold, buffer, self._model_path, camera_index)
         self.hide()
 
     def _reset(self):
@@ -432,6 +432,9 @@ class SettingsPanel(QWidget):
             if idx == self.current_camera:
                 self.camera_combo.setCurrentIndex(self.camera_combo.count() - 1)
 
+    def get_selected_camera(self):
+        return self.camera_combo.currentData()
+    
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
         super().__init__()
