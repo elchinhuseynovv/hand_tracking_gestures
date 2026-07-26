@@ -22,13 +22,19 @@ def extract_features(hand_landmarks):
 
     return features  # 63 values
 
-def list_available_camera(max_check=5):
+def list_available_camera(max_check=5, skip_index=None):
     available = []
+    if skip_index is not None:
+        available.append(skip_index)
+
     for i in range(max_check):
+        if i == skip_index:
+            continue
         cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
         if cap.isOpened():
             ret, _ = cap.read()
             if ret:
                 available.append(1)
             cap.release()
+            
     return available if available else [0]

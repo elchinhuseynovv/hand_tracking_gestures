@@ -126,8 +126,9 @@ class CameraThread(QThread):
 class SettingsPanel(QWidget):
     settings_applied = pyqtSignal(float, int, int, str, int)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, current_camera=0):
         super().__init__(parent)
+        self.current_camera = current_camera
         self.setWindowFlags(Qt.Widget)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_GREEN};")
@@ -424,9 +425,12 @@ class SettingsPanel(QWidget):
     def _populate_cameras(self):
         from utils import list_available_camera
         self.camera_combo.clear()
-        cameras = list_available_camera()
+        cameras = list_available_camera(skip_index=self.current_camera)
         for idx in cameras:
-            self.camera_combo.currentData()
+            label = f"Camera {idx}" + (" (active)" if idx == self.current_camera else "")
+            self.camera_combo.addItem(label, idx)
+            if idx == self.current_camera:
+                self.camera_combo.setCurrentIndex(self.camera_combo.count() - 1)
 
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
@@ -448,7 +452,7 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._setup_shortcuts()
 
-        self.settings_panel = SettingsPanel(self)
+        self.settings_panel = SettingsPanel(self, current_camera=0)
         self.settings_panel.settings_applied.connect(self._apply_settings)
         self.settings_panel.hide()
 
@@ -748,10 +752,11 @@ class MainWindow(QMainWindow):
             self.camera_thread.frame_ready.connect(self.update_frame)
             self.camera_thread.prediction_ready.connect(self.update_prediction)
             self.camera_thread.start()
+            self.settings_panel.current_camera = camera_index
         else:
             self.camera_thread.prediction_buffer = deque(maxlen=buffer)
 
-        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer}")
+        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer} camera={camera_index}")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
