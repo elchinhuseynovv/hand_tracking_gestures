@@ -11,10 +11,11 @@ from mediapipe.python.solutions import drawing_utils as mp_draw
 from mediapipe.python.solutions import drawing_styles as mp_styles
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
-                             QProgressBar, QSizePolicy, QShortcut, QSlider)
+                             QProgressBar, QSizePolicy, QShortcut, QSlider,
+                             QComboBox)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
-from utils import extract_features
+from utils import extract_features, list_available_camera
 from stats_panel import StatsPanel
 
 # ── Config ─────────────────────────────────────────────
@@ -41,16 +42,17 @@ class CameraThread(QThread):
     frame_ready      = pyqtSignal(np.ndarray)
     prediction_ready = pyqtSignal(str, float, int)
 
-    def __init__(self, model=None):
+    def __init__(self, model=None, camera_index=0):
         super().__init__()
-        self.model             = model if model is not None else joblib.load(MODEL_FILE)
-        self.running           = True
+        self.model = model if model is not None else joblib.load(MODEL_FILE)
+        self.running = True
+        self.camera_index = camera_index
         self.prediction_buffer = deque(maxlen=BUFFER_SIZE)
-        self.hold_counter      = 0
-        self.last_added        = None
+        self.hold_counter = 0
+        self.last_added = None
 
     def run(self):
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
@@ -122,7 +124,7 @@ class CameraThread(QThread):
 
 
 class SettingsPanel(QWidget):
-    settings_applied = pyqtSignal(float, int, int, str)
+    settings_applied = pyqtSignal(float, int, int, str, int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -185,6 +187,39 @@ class SettingsPanel(QWidget):
         layout.addLayout(model_row)
 
         self._divider(layout)
+
+        # Cam selector
+        layout.addWidget(self._label("CAMERA"))
+        self.camera_combo = QComboBox()
+        self.camera_combo.setFixedHeight(34)
+        self.camera_combo.setStyleSheet(f"""
+            QComboBox {{
+                background: #1c1c1c; color: {C_WHITE};
+                border-radius: 6px; padding: 6px 10px; border: none;
+                font-family: 'Courier New'; font-size: 11px;
+            }}
+            QComboBox::drop-down {{ border: none; }}
+            QComboBox QAbstractItemView {{
+                background: #1c1c1c; color: {C_WHITE};
+                selection-background-color: {C_GREEN};
+                selection-color: #000;
+            }}
+        """)
+        self._populate_cameras()
+        layout.addWidget(self.camera_combo)
+
+        refresh_cam_btn = QPushButton("Refresh Cameras")
+        refresh_cam_btn.setFixedHeight(30)
+        refresh_cam_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: #1c1c1c; color: {C_GRAY};
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 10px;
+            }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
+        """)
+        refresh_cam_btn.clicked.connect(self._populate_cameras)
+        layout.addWidget(refresh_cam_btn)
 
         # Confidence slider
         conf_row = QHBoxLayout()
@@ -359,9 +394,10 @@ class SettingsPanel(QWidget):
             self._model_path = path
 
     def _apply(self):
-        confidence       = self.conf_slider.value() / 100.0
-        hold             = self.hold_slider.value()
-        buffer           = self.buf_slider.value()
+        confidence = self.conf_slider.value() / 100.0
+        hold = self.hold_slider.value()
+        buffer = self.buf_slider.value()
+        camera_index = self.get_selected_camera()
         self._model_path = getattr(self, '_model_path',
                                    f"models/{self.model_input.text()}")
         self.settings_applied.emit(confidence, hold, buffer, self._model_path)
@@ -384,6 +420,13 @@ class SettingsPanel(QWidget):
         import sounds
         sounds.set_muted(checked)
         self.mute_btn.setText("Sound OFF" if checked else "Sound ON")
+
+    def _populate_cameras(self):
+        from utils import list_available_camera
+        self.camera_combo.clear()
+        cameras = list_available_camera()
+        for idx in cameras:
+            self.camera_combo.currentData()
 
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
@@ -692,13 +735,22 @@ class MainWindow(QMainWindow):
         self.settings_panel.setFixedSize(panel_w, self.height())
         self.settings_panel.move(self.width() - panel_w, 0)
 
-    def _apply_settings(self, confidence, hold, buffer, model_path):
+    def _apply_settings(self, confidence, hold, buffer, model_path, camera_index):
         global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE
         CONFIDENCE_MIN = confidence
-        HOLD_FRAMES    = hold
-        BUFFER_SIZE    = buffer
+        HOLD_FRAMES = hold
+        BUFFER_SIZE = buffer
         self.hold_bar.setRange(0, hold)
-        self.camera_thread.prediction_buffer = deque(maxlen=buffer)
+
+        if camera_index != self.camera_thread.camera_index:
+            self.camera_thread.stop()
+            self.camera_thread = CameraThread(self.model, camera_index=camera_index)
+            self.camera_thread.frame_ready.connect(self.update_frame)
+            self.camera_thread.prediction_ready.connect(self.update_prediction)
+            self.camera_thread.start()
+        else:
+            self.camera_thread.prediction_buffer = deque(maxlen=buffer)
+
         print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer}")
 
     def resizeEvent(self, event):

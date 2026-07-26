@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 def extract_features(hand_landmarks):
     landmarks = hand_landmarks.landmark
@@ -20,3 +21,14 @@ def extract_features(hand_landmarks):
         features = [f / scale for f in features]
 
     return features  # 63 values
+
+def list_available_camera(max_check=5):
+    available = []
+    for i in range(max_check):
+        cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+        if cap.isOpened():
+            ret, _ = cap.read()
+            if ret:
+                available.append(1)
+            cap.release()
+    return available if available else [0]
