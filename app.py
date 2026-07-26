@@ -17,16 +17,17 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features, list_available_camera
 from stats_panel import StatsPanel
+from autocomplete import AutocompleteEngine
 
-# ── Config ─────────────────────────────────────────────
+# Config
 MODEL_FILE     = "models/az_model.pkl"
 BUFFER_SIZE    = 10
 CONFIDENCE_MIN = 0.55
 HOLD_FRAMES    = 20
 HISTORY_SIZE   = 10
-# ───────────────────────────────────────────────────────
 
-# ── Colors ─────────────────────────────────────────────
+
+# Colors
 C_BG    = "#0f0f0f"
 C_PANEL = "#1c1c1c"
 C_GREEN = "#00dc64"
@@ -35,7 +36,7 @@ C_BLUE  = "#00a5ff"
 C_WHITE = "#ffffff"
 C_GRAY  = "#555555"
 C_DARK  = "#2a2a2a"
-# ───────────────────────────────────────────────────────
+
 
 
 class CameraThread(QThread):
@@ -469,6 +470,8 @@ class MainWindow(QMainWindow):
         self.stats_panel.hide()
         self._reposition_stats()
 
+        self.autocomplete = AutocompleteEngine()
+
 
     def _build_ui(self):
         central = QWidget()
@@ -648,6 +651,42 @@ class MainWindow(QMainWindow):
         word_row.addStretch()
         root.addWidget(word_panel)
 
+        # Suggestions row
+        self.suggestions_panel = QWidget()
+        self.suggestions_panel.setFixedHeight(44)
+        self.suggestions_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
+        sugg_layout = QHBoxLayout(self.suggestions_panel)
+        sugg_layout.setContentsMargins(16, 0, 16, 0)
+        sugg_layout.setSpacing(10)
+
+        sugg_label = QLabel("SUGGEST")
+        sugg_label.setFixedWidth(90)
+        sugg_label.setFont(QFont("Courier New", 10))
+        sugg_label.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        sugg_layout.addWidget(sugg_label)
+
+        self.suggestion_buttons = []
+        for i in range(4):
+            btn = QPushButton("")
+            btn.setFixedHeight(30)
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {C_DARK}; color: {C_WHITE};
+                    border: none; border-radius: 6px;
+                    font-family: 'Courier New'; font-size: 12px;
+                    padding: 0 12px;
+                }}
+                QPushButton:hover {{ background: {C_GREEN}; color: #000; }}
+            """)
+            btn.hide()
+            btn.clicked.connect(lambda checked, idx=i: self._accept_suggestion(idx))
+            sugg_layout.addWidget(btn)
+            self.suggestion_buttons.append(btn)
+
+        sugg_layout.addStretch()
+        root.addWidget(self.suggestions_panel)
+
+
         # Sentence row
         sent_row = QHBoxLayout()
         sent_row.setSpacing(10)
@@ -699,7 +738,7 @@ class MainWindow(QMainWindow):
 
         # Controls bar
         controls = QLabel(
-            "SPACE = confirm word     BACKSPACE = delete letter     C = clear all     Ctrl+E = export     ESC = quit"
+            "SPACE = confirm word     TAB = accept suggestion     BACKSPACE = delete letter     C = clear all     Ctrl+E = export     ESC = quit"
         )
         controls.setFont(QFont("Courier New", 10))
         controls.setStyleSheet(f"color: {C_GRAY};")
@@ -713,6 +752,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Return"), self, self.speak_sentence)
         QShortcut(QKeySequence("c"), self, self.clear_all)
         QShortcut(QKeySequence("Ctrl+E"), self, self.export_session)
+        QShortcut(QKeySequence("Tab"), self, lambda: self._accept_suggestion(0))
 
     def _toggle_settings(self):
         if self.settings_panel.isVisible():
@@ -818,6 +858,30 @@ class MainWindow(QMainWindow):
         self.history_label.setText(
             "  ".join(list(self.letter_history)) or "—"
         )
+        self._update_suggestions()
+
+    def _update_suggestions(self):
+        prefix = "".join(self.current_word)
+        suggestions = self.autocomplete.suggest(prefix, max_results=4) if prefix else []
+
+        for i, btn in enumerate(self.suggestion_buttons):
+            if i < len(suggestions):
+                btn.setText(suggestions[i])
+                btn.show()
+            else:
+                btn.hide()
+
+    def _accept_suggestion(self, idx):
+        prefix = "".join(self.current_word)
+        suggestions = self.autocomplete.suggest(prefix, max_results=4)
+        if idx < len(suggestions):
+            chosen = suggestions[idx]
+            self.sentence.append(chosen)
+            self.current_word = []
+            self.letter_history.clear()
+            sounds.play_word_complete()
+            self.stats_panel.record_word()
+            self._refresh_display()
 
     def confirm_word(self):
         if self.current_word:
