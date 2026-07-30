@@ -25,7 +25,7 @@ BUFFER_SIZE    = 10
 CONFIDENCE_MIN = 0.55
 HOLD_FRAMES    = 20
 HISTORY_SIZE   = 10
-
+SUGGESTION_COUNT = 4
 
 # Colors
 C_BG    = "#0f0f0f"
@@ -125,7 +125,7 @@ class CameraThread(QThread):
 
 
 class SettingsPanel(QWidget):
-    settings_applied = pyqtSignal(float, int, int, str, int)
+    settings_applied = pyqtSignal(float, int, int, str, int, int)
 
     def __init__(self, parent=None, current_camera=0):
         super().__init__(parent)
@@ -321,6 +321,55 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
+        layout.addWidget(self._label("STARTUP BEHAVIOR"))
+
+        self.autostart_camera_btn = QPushButton("Auto-start Camera: ON")
+        self.autostart_camera_btn.setFixedHeight(36)
+        self.autostart_camera_btn.setCheckable(True)
+        self.autostart_camera_btn.setChecked(True)
+        self.autostart_camera_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {C_GREEN}; color: #000;
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:!checked {{ background: {C_DARK}; color: {C_WHITE}; }}
+        """)
+        self.autostart_camera_btn.clicked.connect(self._toggle_autostart_label)
+        layout.addWidget(self.autostart_camera_btn)
+
+        self.fullscreen_btn = QPushButton("Start Fullscreen: ON")
+        self.fullscreen_btn.setFixedHeight(36)
+        self.fullscreen_btn.setCheckable(True)
+        self.fullscreen_btn.setChecked(True)
+        self.fullscreen_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {C_GREEN}; color: #000;
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:!checked {{ background: {C_DARK}; color: {C_WHITE}; }}
+        """)
+        self.fullscreen_btn.clicked.connect(self._toggle_fullscreen_label)
+        layout.addWidget(self.fullscreen_btn)
+
+        self._divider(layout)
+
+        sugg_row = QHBoxLayout()
+        sugg_row.addWidget(self._label("SUGGESTION COUNT"))
+        self.sugg_val = QLabel("4")
+        self.sugg_val.setFont(QFont("Courier New", 11))
+        self.sugg_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
+        sugg_row.addWidget(self.sugg_val)
+        layout.addLayout(sugg_row)
+
+        self.sugg_slider = QSlider(Qt.Horizontal)
+        self.sugg_slider.setRange(1, 6)
+        self.sugg_slider.setValue(4)
+        self.sugg_slider.setStyleSheet(self._slider_style(C_BLUE))
+        self.sugg_slider.valueChanged.connect(lambda v: self.sugg_val.setText(str(v)))
+        layout.addWidget(self.sugg_slider)
+    
         # Apply button
         apply_btn = QPushButton("APPLY SETTINGS")
         apply_btn.setFixedHeight(44)
@@ -400,15 +449,22 @@ class SettingsPanel(QWidget):
         hold = self.hold_slider.value()
         buffer = self.buf_slider.value()
         camera_index = self.get_selected_camera()
+        suggestion_count = self.get_suggestion_count()
         self._model_path = getattr(self, '_model_path',
                                    f"models/{self.model_input.text()}")
-        self.settings_applied.emit(confidence, hold, buffer, self._model_path, camera_index)
+        self.settings_applied.emit(confidence, hold, buffer, self._model_path, camera_index, suggestion_count)
         self.hide()
 
     def _reset(self):
         self.conf_slider.setValue(55)
         self.hold_slider.setValue(20)
         self.buf_slider.setValue(10)
+        self.sound_slider.setValue(70)
+        self.sugg_slider.setValue(4)
+        self.autostart_camera_btn.setChecked(True)
+        self._toggle_autostart_label(True)
+        self.fullscreen_btn.setChecked(True)
+        self._toggle_fullscreen_label(True)
         self.model_input.setText("az_model.pkl")
         if hasattr(self, '_model_path'):
             del self._model_path
@@ -435,6 +491,21 @@ class SettingsPanel(QWidget):
 
     def get_selected_camera(self):
         return self.camera_combo.currentData()
+
+    def _toggle_autostart_label(self, checked):
+        self.autostart_camera_btn.setText(f"Auto-start Camera: {'ON' if checked else 'OFF'}")
+
+    def _toggle_fullscreen_label(self, checked):
+        self.fullscreen_btn.setText(f"Start Fullscreen: {'ON' if checked else 'OFF'}")
+
+    def get_autostart_camera(self):
+        return self.autostart_camera_btn.isChecked()
+
+    def get_start_fullscreen(self):
+        return self.fullscreen_btn.isChecked()
+
+    def get_suggestion_count(self):
+        return self.sugg_slider.value()
     
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
@@ -666,7 +737,7 @@ class MainWindow(QMainWindow):
         sugg_layout.addWidget(sugg_label)
 
         self.suggestion_buttons = []
-        for i in range(4):
+        for i in range(6):
             btn = QPushButton("")
             btn.setFixedHeight(30)
             btn.setStyleSheet(f"""
@@ -782,11 +853,12 @@ class MainWindow(QMainWindow):
         self.settings_panel.setFixedSize(panel_w, self.height())
         self.settings_panel.move(self.width() - panel_w, 0)
 
-    def _apply_settings(self, confidence, hold, buffer, model_path, camera_index):
-        global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE
+    def _apply_settings(self, confidence, hold, buffer, model_path, camera_index, suggestion_count):
+        global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE, SUGGESTION_COUNT
         CONFIDENCE_MIN = confidence
         HOLD_FRAMES = hold
         BUFFER_SIZE = buffer
+        SUGGESTION_COUNT= suggestion_count
         self.hold_bar.setRange(0, hold)
 
         if camera_index != self.camera_thread.camera_index:
@@ -799,6 +871,7 @@ class MainWindow(QMainWindow):
         else:
             self.camera_thread.prediction_buffer = deque(maxlen=buffer)
 
+        self._update_suggestions()
         print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer} camera={camera_index}")
 
     def resizeEvent(self, event):
@@ -862,7 +935,7 @@ class MainWindow(QMainWindow):
 
     def _update_suggestions(self):
         prefix = "".join(self.current_word)
-        suggestions = self.autocomplete.suggest(prefix, max_results=4) if prefix else []
+        suggestions = self.autocomplete.suggest(prefix, max_results=SUGGESTION_COUNT) if prefix else []
 
         for i, btn in enumerate(self.suggestion_buttons):
             if i < len(suggestions):
