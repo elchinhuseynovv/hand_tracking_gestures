@@ -18,6 +18,7 @@ from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features, list_available_camera
 from stats_panel import StatsPanel
 from autocomplete import AutocompleteEngine
+from translations import t, set_language, get_language
 
 # Config
 MODEL_FILE     = "models/az_model.pkl"
@@ -123,9 +124,33 @@ class CameraThread(QThread):
         self.running = False
         self.wait()
 
+        self._divider(layout)
+        layout.addWidget(self._label(t("language")))
+        self.lang_combo = QComboBox()
+        self.lang_combo.setFixedHeight(34)
+        self.lang_combo.setStyleSheet(f"""
+            QComboBox {{
+                background: #1c1c1c; color: {C_WHITE};
+                border-radius: 6px; padding: 6px 10px; border: none;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QComboBox QAbstractItemView {{
+                background: #1c1c1c; color: {C_WHITE};
+                selection-background-color: {C_GREEN};
+                selection-color: #000;
+            }}
+        """)
+        self.lang_combo.addItem("English", "en")
+        self.lang_combo.addItem("Azərbaycanca", "az")
+        self.lang_combo.addItem("Русский", "ru")
+        current = get_language()
+        idx = {"en": 0, "az": 1, "ru": 2}.get(current, 0)
+        self.lang_combo.setCurrentIndex(idx)
+        layout.addWidget(self.lang_combo)
 
+    
 class SettingsPanel(QWidget):
-    settings_applied = pyqtSignal(float, int, int, str, int, int)
+    settings_applied = pyqtSignal(float, int, int, str, int, int, str)
 
     def __init__(self, parent=None, current_camera=0):
         super().__init__(parent)
@@ -450,6 +475,8 @@ class SettingsPanel(QWidget):
         buffer = self.buf_slider.value()
         camera_index = self.get_selected_camera()
         suggestion_count = self.get_suggestion_count()
+        language = self.lang_combo.currentData()
+
         self._model_path = getattr(self, '_model_path',
                                    f"models/{self.model_input.text()}")
         self.settings_applied.emit(confidence, hold, buffer, self._model_path, camera_index, suggestion_count)
@@ -553,14 +580,14 @@ class MainWindow(QMainWindow):
 
         # Title bar
         title_bar = QHBoxLayout()
-        title = QLabel("AzSL Recognition")
+        title = QLabel(t("app_title"))
         title.setFont(QFont("Courier New", 14))
         title.setStyleSheet(f"color: {C_GRAY};")
         title_bar.addWidget(title)
         title_bar.addStretch()
 
         # stats button
-        stats_btn = QPushButton("Stats")
+        stats_btn = QPushButton(t("stats"))
         stats_btn.setFixedSize(100, 32)
         stats_btn.setStyleSheet(f"""
             QPushButton {{
@@ -574,7 +601,7 @@ class MainWindow(QMainWindow):
         title_bar.addWidget(stats_btn)
         
         # Settings button — added BEFORE root.addLayout
-        settings_btn = QPushButton("⚙  Settings")
+        settings_btn = QPushButton(t("settings"))
         settings_btn.setFixedSize(110, 32)
         settings_btn.setStyleSheet(f"""
             QPushButton {{
@@ -587,7 +614,7 @@ class MainWindow(QMainWindow):
         settings_btn.clicked.connect(self._toggle_settings)
         title_bar.addWidget(settings_btn)
 
-        quit_btn = QPushButton("✕  Quit")
+        quit_btn = QPushButton(t("quit"))
         quit_btn.setFixedSize(90, 32)
         quit_btn.setStyleSheet(f"""
             QPushButton {{
@@ -625,7 +652,7 @@ class MainWindow(QMainWindow):
         letter_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         letter_layout = QVBoxLayout(letter_panel)
         letter_layout.setContentsMargins(16, 12, 16, 12)
-        lbl_title = QLabel("DETECTED LETTER")
+        lbl_title = QLabel(t("detected_letter"))
         lbl_title.setFont(QFont("Courier New", 10))
         lbl_title.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.letter_label = QLabel("—")
@@ -643,7 +670,7 @@ class MainWindow(QMainWindow):
         conf_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         conf_layout = QVBoxLayout(conf_panel)
         conf_layout.setContentsMargins(16, 10, 16, 10)
-        conf_lbl = QLabel("CONFIDENCE")
+        conf_lbl = QLabel(t("confidence"))
         conf_lbl.setFont(QFont("Courier New", 10))
         conf_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.conf_bar = QProgressBar()
@@ -667,7 +694,7 @@ class MainWindow(QMainWindow):
         hold_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         hold_layout = QVBoxLayout(hold_panel)
         hold_layout.setContentsMargins(16, 10, 16, 10)
-        hold_lbl = QLabel("HOLD PROGRESS")
+        hold_lbl = QLabel(t("hold_progress"))
         hold_lbl.setFont(QFont("Courier New", 10))
         hold_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.hold_bar = QProgressBar()
@@ -690,7 +717,7 @@ class MainWindow(QMainWindow):
         hist_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
         hist_layout = QVBoxLayout(hist_panel)
         hist_layout.setContentsMargins(16, 10, 16, 10)
-        hist_lbl = QLabel("HISTORY")
+        hist_lbl = QLabel(t("history"))
         hist_lbl.setFont(QFont("Courier New", 10))
         hist_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         self.history_label = QLabel("—")
@@ -710,7 +737,7 @@ class MainWindow(QMainWindow):
         word_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
         word_row = QHBoxLayout(word_panel)
         word_row.setContentsMargins(20, 0, 20, 0)
-        word_lbl = QLabel("WORD")
+        word_lbl = QLabel(t("word"))
         word_lbl.setFixedWidth(90)
         word_lbl.setFont(QFont("Courier New", 10))
         word_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
@@ -730,7 +757,7 @@ class MainWindow(QMainWindow):
         sugg_layout.setContentsMargins(16, 0, 16, 0)
         sugg_layout.setSpacing(10)
 
-        sugg_label = QLabel("SUGGEST")
+        sugg_label = QLabel(t("suggest"))
         sugg_label.setFixedWidth(90)
         sugg_label.setFont(QFont("Courier New", 10))
         sugg_label.setStyleSheet(f"color: {C_GRAY}; border: none;")
@@ -766,7 +793,7 @@ class MainWindow(QMainWindow):
         sent_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
         sent_layout = QHBoxLayout(sent_panel)
         sent_layout.setContentsMargins(20, 0, 20, 0)
-        sent_lbl = QLabel("SENTENCE")
+        sent_lbl = QLabel(t("sentence"))
         sent_lbl.setFixedWidth(90)
         sent_lbl.setFont(QFont("Courier New", 10))
         sent_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
@@ -778,7 +805,7 @@ class MainWindow(QMainWindow):
         sent_layout.addStretch()
         sent_row.addWidget(sent_panel, 1)
 
-        speak_btn = QPushButton("SPEAK")
+        speak_btn = QPushButton(t("speak"))
         speak_btn.setFixedSize(110, 64)
         speak_btn.setStyleSheet(f"""
             QPushButton {{
@@ -793,7 +820,7 @@ class MainWindow(QMainWindow):
         sent_row.addWidget(speak_btn)
         root.addLayout(sent_row)
 
-        export_btn = QPushButton("EXPORT")
+        export_btn = QPushButton(t("export"))
         export_btn.setFixedSize(110, 64)
         export_btn.setStyleSheet(f"""
             QPushButton {{
@@ -853,12 +880,17 @@ class MainWindow(QMainWindow):
         self.settings_panel.setFixedSize(panel_w, self.height())
         self.settings_panel.move(self.width() - panel_w, 0)
 
-    def _apply_settings(self, confidence, hold, buffer, model_path, camera_index, suggestion_count):
+    def _apply_settings(self, confidence, hold, buffer, model_path, camera_index, suggestion_count, language):
         global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE, SUGGESTION_COUNT
         CONFIDENCE_MIN = confidence
         HOLD_FRAMES = hold
         BUFFER_SIZE = buffer
         SUGGESTION_COUNT= suggestion_count
+
+        if language != get_language():
+            set_language(language)
+            self._rebuild_ui_language()
+
         self.hold_bar.setRange(0, hold)
 
         if camera_index != self.camera_thread.camera_index:
@@ -872,6 +904,13 @@ class MainWindow(QMainWindow):
             self.camera_thread.prediction_buffer = deque(maxlen=buffer)
 
         self._update_suggestions()
+
+    def _rebuild_ui_language(self):
+        old_central = self.centralWidget()
+        old_central.deleteLater()
+        self._build_ui()
+        self._refresh_display()
+        
         print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer} camera={camera_index}")
 
     def resizeEvent(self, event):
