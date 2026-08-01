@@ -29,15 +29,17 @@ HISTORY_SIZE   = 10
 SUGGESTION_COUNT = 4
 
 # Colors
-C_BG    = "#0f0f0f"
-C_PANEL = "#1c1c1c"
-C_GREEN = "#00dc64"
-C_CYAN  = "#00c8dc"
-C_BLUE  = "#00a5ff"
-C_WHITE = "#ffffff"
-C_GRAY  = "#555555"
-C_DARK  = "#2a2a2a"
-
+C_BG      = "#0a0a0a"
+C_PANEL   = "#181818"
+C_PANEL_HOVER = "#1f1f1f"
+C_GREEN   = "#00e676"
+C_CYAN    = "#00d4e8"
+C_BLUE    = "#2196f3"
+C_WHITE   = "#f5f5f5"
+C_GRAY    = "#8a8a8a"
+C_GRAY_DIM= "#5a5a5a"
+C_DARK    = "#252525"
+C_BORDER  = "#333333"
 
 
 class CameraThread(QThread):
@@ -428,8 +430,8 @@ class SettingsPanel(QWidget):
 
     def _label(self, text):
         lbl = QLabel(text)
-        lbl.setFont(QFont("Courier New", 10))
-        lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        lbl.setFont(QFont("Courier New", 10, QFont.DemiBold))
+        lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1px;")
         return lbl
 
     def _hint(self, text):
@@ -670,15 +672,16 @@ class MainWindow(QMainWindow):
         conf_layout.setContentsMargins(16, 10, 16, 10)
         conf_lbl = QLabel(t("confidence"))
         conf_lbl.setFont(QFont("Courier New", 10))
-        conf_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        conf_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
         self.conf_bar = QProgressBar()
         self.conf_bar.setRange(0, 100)
         self.conf_bar.setTextVisible(True)
         self.conf_bar.setFixedHeight(28)
         self.conf_bar.setStyleSheet(f"""
             QProgressBar {{
-                background: {C_DARK}; border-radius: 6px; border: none;
-                color: #000; font-family: 'Courier New'; font-size: 12px; font-weight: bold;
+                background: {C_DARK}; border-radius: 6px; border: 1px solid {C_BORDER};
+                color: {C_WHITE}; font-family: 'Courier New'; font-size: 12px; font-weight: bold;
+                text-align: center;
             }}
             QProgressBar::chunk {{ background: {C_GREEN}; border-radius: 6px; }}
         """)
@@ -694,7 +697,7 @@ class MainWindow(QMainWindow):
         hold_layout.setContentsMargins(16, 10, 16, 10)
         hold_lbl = QLabel(t("hold_progress"))
         hold_lbl.setFont(QFont("Courier New", 10))
-        hold_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        hold_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
         self.hold_bar = QProgressBar()
         self.hold_bar.setRange(0, HOLD_FRAMES)
         self.hold_bar.setTextVisible(False)
@@ -717,7 +720,7 @@ class MainWindow(QMainWindow):
         hist_layout.setContentsMargins(16, 10, 16, 10)
         hist_lbl = QLabel(t("history"))
         hist_lbl.setFont(QFont("Courier New", 10))
-        hist_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        hist_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
         self.history_label = QLabel("—")
         self.history_label.setFont(QFont("Courier New", 18))
         self.history_label.setStyleSheet(f"color: {C_WHITE}; border: none;")
@@ -738,7 +741,7 @@ class MainWindow(QMainWindow):
         word_lbl = QLabel(t("word"))
         word_lbl.setFixedWidth(90)
         word_lbl.setFont(QFont("Courier New", 10))
-        word_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        word_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
         self.word_label = QLabel("...")
         self.word_label.setFont(QFont("Courier New", 24))
         self.word_label.setStyleSheet(f"color: {C_WHITE}; border: none;")
@@ -758,7 +761,7 @@ class MainWindow(QMainWindow):
         sugg_label = QLabel(t("suggest"))
         sugg_label.setFixedWidth(90)
         sugg_label.setFont(QFont("Courier New", 10))
-        sugg_label.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        sugg_label.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
         sugg_layout.addWidget(sugg_label)
 
         self.suggestion_buttons = []
@@ -794,7 +797,7 @@ class MainWindow(QMainWindow):
         sent_lbl = QLabel(t("sentence"))
         sent_lbl.setFixedWidth(90)
         sent_lbl.setFont(QFont("Courier New", 10))
-        sent_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        sent_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
         self.sent_label = QLabel("...")
         self.sent_label.setFont(QFont("Courier New", 18))
         self.sent_label.setStyleSheet(f"color: {C_BLUE}; border: none;")
@@ -939,10 +942,11 @@ class MainWindow(QMainWindow):
             color = C_GREEN if confidence > 0.75 else "#00a5ff"
             self.conf_bar.setStyleSheet(f"""
                 QProgressBar {{
-                    background: {C_DARK}; border-radius: 4px;
-                    color: {C_BG}; font-family: 'Courier New'; font-size: 11px;
+                    background: {C_DARK}; border-radius: 6px; border: 1px solid {C_BORDER};
+                    color: {C_WHITE}; font-family: 'Courier New'; font-size: 12px; font-weight: bold;
+                    text-align: center;
                 }}
-                QProgressBar::chunk {{ background: {color}; border-radius: 4px; }}
+                QProgressBar::chunk {{ background: {color}; border-radius: 6px; }}
             """)
             self.hold_bar.setValue(hold_counter)
 
