@@ -124,30 +124,6 @@ class CameraThread(QThread):
         self.running = False
         self.wait()
 
-        self._divider(layout)
-        layout.addWidget(self._label(t("language")))
-        self.lang_combo = QComboBox()
-        self.lang_combo.setFixedHeight(34)
-        self.lang_combo.setStyleSheet(f"""
-            QComboBox {{
-                background: #1c1c1c; color: {C_WHITE};
-                border-radius: 6px; padding: 6px 10px; border: none;
-                font-family: 'Courier New'; font-size: 12px;
-            }}
-            QComboBox QAbstractItemView {{
-                background: #1c1c1c; color: {C_WHITE};
-                selection-background-color: {C_GREEN};
-                selection-color: #000;
-            }}
-        """)
-        self.lang_combo.addItem("English", "en")
-        self.lang_combo.addItem("Azərbaycanca", "az")
-        self.lang_combo.addItem("Русский", "ru")
-        current = get_language()
-        idx = {"en": 0, "az": 1, "ru": 2}.get(current, 0)
-        self.lang_combo.setCurrentIndex(idx)
-        layout.addWidget(self.lang_combo)
-
     
 class SettingsPanel(QWidget):
     settings_applied = pyqtSignal(float, int, int, str, int, int, str)
@@ -187,6 +163,28 @@ class SettingsPanel(QWidget):
         layout.addLayout(header_row)
 
         self._divider(layout)
+        layout.addWidget(self._label(t("language")))
+        self.lang_combo = QComboBox()
+        self.lang_combo.setFixedHeight(34)
+        self.lang_combo.setStyleSheet(f"""
+            QComboBox {{
+                background: #1c1c1c; color: {C_WHITE};
+                border-radius: 6px; padding: 6px 10px; border: none;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QComboBox QAbstractItemView {{
+                background: #1c1c1c; color: {C_WHITE};
+                selection-background-color: {C_GREEN};
+                selection-color: #000;
+            }}
+        """)
+        self.lang_combo.addItem("English", "en")
+        self.lang_combo.addItem("Azərbaycanca", "az")
+        self.lang_combo.addItem("Русский", "ru")
+        current = get_language()
+        idx = {"en": 0, "az": 1, "ru": 2}.get(current, 0)
+        self.lang_combo.setCurrentIndex(idx)
+        layout.addWidget(self.lang_combo)
 
         # Model file
         layout.addWidget(self._label("MODEL FILE"))
@@ -478,8 +476,8 @@ class SettingsPanel(QWidget):
         language = self.lang_combo.currentData()
 
         self._model_path = getattr(self, '_model_path',
-                                   f"models/{self.model_input.text()}")
-        self.settings_applied.emit(confidence, hold, buffer, self._model_path, camera_index, suggestion_count)
+                                f"models/{self.model_input.text()}")
+        self.settings_applied.emit(confidence, hold, buffer, self._model_path, camera_index, suggestion_count, language)  # ← added language
         self.hide()
 
     def _reset(self):
@@ -904,14 +902,13 @@ class MainWindow(QMainWindow):
             self.camera_thread.prediction_buffer = deque(maxlen=buffer)
 
         self._update_suggestions()
+        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer} camera={camera_index}")
 
     def _rebuild_ui_language(self):
         old_central = self.centralWidget()
         old_central.deleteLater()
         self._build_ui()
         self._refresh_display()
-        
-        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer} camera={camera_index}")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -985,7 +982,7 @@ class MainWindow(QMainWindow):
 
     def _accept_suggestion(self, idx):
         prefix = "".join(self.current_word)
-        suggestions = self.autocomplete.suggest(prefix, max_results=4)
+        suggestions = self.autocomplete.suggest(prefix, max_results=SUGGESTION_COUNT)
         if idx < len(suggestions):
             chosen = suggestions[idx]
             self.sentence.append(chosen)
