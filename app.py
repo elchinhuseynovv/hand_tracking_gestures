@@ -637,7 +637,7 @@ class MainWindow(QMainWindow):
         self.cam_label.setStyleSheet(f"""
             background: {C_PANEL};
             border-radius: 12px;
-            border: 1px solid #2a2a2a;
+            border: 1px solid {C_BORDER};
         """)
         self.cam_label.setAlignment(Qt.AlignCenter)
         self.cam_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -649,7 +649,7 @@ class MainWindow(QMainWindow):
         # Letter box
         letter_panel = QWidget()
         letter_panel.setMinimumHeight(220)
-        letter_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
+        letter_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         letter_layout = QVBoxLayout(letter_panel)
         letter_layout.setContentsMargins(16, 12, 16, 12)
         lbl_title = QLabel(t("detected_letter"))
@@ -667,7 +667,7 @@ class MainWindow(QMainWindow):
         # Confidence bar
         conf_panel = QWidget()
         conf_panel.setMinimumHeight(80)
-        conf_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
+        conf_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         conf_layout = QVBoxLayout(conf_panel)
         conf_layout.setContentsMargins(16, 10, 16, 10)
         conf_lbl = QLabel(t("confidence"))
@@ -692,7 +692,7 @@ class MainWindow(QMainWindow):
         # Hold bar
         hold_panel = QWidget()
         hold_panel.setMinimumHeight(80)
-        hold_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
+        hold_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         hold_layout = QVBoxLayout(hold_panel)
         hold_layout.setContentsMargins(16, 10, 16, 10)
         hold_lbl = QLabel(t("hold_progress"))
@@ -715,7 +715,7 @@ class MainWindow(QMainWindow):
         # History
         hist_panel = QWidget()
         hist_panel.setMinimumHeight(80)
-        hist_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid #2a2a2a;")
+        hist_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         hist_layout = QVBoxLayout(hist_panel)
         hist_layout.setContentsMargins(16, 10, 16, 10)
         hist_lbl = QLabel(t("history"))
@@ -735,7 +735,7 @@ class MainWindow(QMainWindow):
         # Word row
         word_panel = QWidget()
         word_panel.setFixedHeight(64)
-        word_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
+        word_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid {C_BORDER};")
         word_row = QHBoxLayout(word_panel)
         word_row.setContentsMargins(20, 0, 20, 0)
         word_lbl = QLabel(t("word"))
@@ -753,7 +753,7 @@ class MainWindow(QMainWindow):
         # Suggestions row
         self.suggestions_panel = QWidget()
         self.suggestions_panel.setFixedHeight(44)
-        self.suggestions_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
+        self.suggestions_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid {C_BORDER};")
         sugg_layout = QHBoxLayout(self.suggestions_panel)
         sugg_layout.setContentsMargins(16, 0, 16, 0)
         sugg_layout.setSpacing(10)
@@ -791,7 +791,7 @@ class MainWindow(QMainWindow):
         sent_row.setSpacing(10)
         sent_panel = QWidget()
         sent_panel.setFixedHeight(64)
-        sent_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid #2a2a2a;")
+        sent_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid {C_BORDER};")
         sent_layout = QHBoxLayout(sent_panel)
         sent_layout.setContentsMargins(20, 0, 20, 0)
         sent_lbl = QLabel(t("sentence"))
@@ -936,6 +936,7 @@ class MainWindow(QMainWindow):
 
         if prediction:
             self.letter_label.setText(prediction)
+            self.letter_label.setStyleSheet(f"color: {C_GREEN}; border: none;")
             conf_pct  = int(confidence * 100)
             self.conf_bar.setValue(conf_pct)
             self.conf_bar.setFormat(f"{conf_pct}%")
@@ -959,6 +960,7 @@ class MainWindow(QMainWindow):
                 self._refresh_display()
         else:
             self.letter_label.setText("—")
+            self.letter_label.setStyleSheet(f"color: {C_GRAY_DIM}; border: none;")
             self.conf_bar.setValue(0)
             self.hold_bar.setValue(0)
 
