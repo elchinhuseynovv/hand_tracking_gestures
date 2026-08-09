@@ -145,7 +145,7 @@ class SettingsPanel(QWidget):
 
         # Header
         header_row = QHBoxLayout()
-        title = QLabel("SETTINGS")
+        title = QLabel(t("settings_title"))
         title.setFont(QFont("Courier New", 14, QFont.Bold))
         title.setStyleSheet(f"color: {C_GREEN}; border: none;")
         header_row.addWidget(title)
@@ -189,7 +189,7 @@ class SettingsPanel(QWidget):
         layout.addWidget(self.lang_combo)
 
         # Model file
-        layout.addWidget(self._label("MODEL FILE"))
+        layout.addWidget(self._label(t("model_file")))
         model_row = QHBoxLayout()
         self.model_input = QLabel("az_model.pkl")
         self.model_input.setFont(QFont("Courier New", 11))
@@ -216,7 +216,7 @@ class SettingsPanel(QWidget):
         self._divider(layout)
 
         # Cam selector
-        layout.addWidget(self._label("CAMERA"))
+        layout.addWidget(self._label(t("camera")))
         self.camera_combo = QComboBox()
         self.camera_combo.setFixedHeight(34)
         self.camera_combo.setStyleSheet(f"""
@@ -235,7 +235,7 @@ class SettingsPanel(QWidget):
         self._populate_cameras()
         layout.addWidget(self.camera_combo)
 
-        refresh_cam_btn = QPushButton("Refresh Cameras")
+        refresh_cam_btn = QPushButton(t("refresh_cameras"))
         refresh_cam_btn.setFixedHeight(30)
         refresh_cam_btn.setStyleSheet(f"""
             QPushButton {{
@@ -250,7 +250,7 @@ class SettingsPanel(QWidget):
 
         # Confidence slider
         conf_row = QHBoxLayout()
-        conf_row.addWidget(self._label("CONFIDENCE THRESHOLD"))
+        conf_row.addWidget(self._label(t("confidence_threshold")))
         self.conf_val = QLabel("55%")
         self.conf_val.setFont(QFont("Courier New", 11))
         self.conf_val.setStyleSheet(f"color: {C_GREEN}; border: none;")
@@ -272,7 +272,7 @@ class SettingsPanel(QWidget):
 
         # Hold slider
         hold_row = QHBoxLayout()
-        hold_row.addWidget(self._label("HOLD SPEED"))
+        hold_row.addWidget(self._label(t("hold_speed")))
         self.hold_val = QLabel("20 frames")
         self.hold_val.setFont(QFont("Courier New", 11))
         self.hold_val.setStyleSheet(f"color: {C_CYAN}; border: none;")
@@ -294,7 +294,7 @@ class SettingsPanel(QWidget):
 
         # Buffer slider
         buf_row = QHBoxLayout()
-        buf_row.addWidget(self._label("SMOOTHING BUFFER"))
+        buf_row.addWidget(self._label(t("smoothing_buffer")))
         self.buf_val = QLabel("10 frames")
         self.buf_val.setFont(QFont("Courier New", 11))
         self.buf_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
@@ -316,7 +316,7 @@ class SettingsPanel(QWidget):
 
         #Sound section
         sound_row = QHBoxLayout()
-        sound_row.addWidget(self._label("SOUND VOLUME"))
+        sound_row.addWidget(self._label(t("sound_volume")))
         self.sound_val = QLabel("70%")
         self.sound_val.setFont(QFont("Courier New", 11))
         self.sound_val.setStyleSheet(f"color: {C_GREEN}; border:none;")
@@ -330,7 +330,7 @@ class SettingsPanel(QWidget):
         self.sound_slider.valueChanged.connect(self._on_volume_change)
         layout.addWidget(self.sound_slider)
 
-        self.mute_btn = QPushButton("Sound ON")
+        self.mute_btn = QPushButton(t("sound_on"))
         self.mute_btn.setFixedHeight(36)
         self.mute_btn.setCheckable(True)
         self.mute_btn.setStyleSheet(f"""
@@ -346,9 +346,9 @@ class SettingsPanel(QWidget):
 
         self._divider(layout)
 
-        layout.addWidget(self._label("STARTUP BEHAVIOR"))
+        layout.addWidget(self._label(t("startup_behavior")))
 
-        self.autostart_camera_btn = QPushButton("Auto-start Camera: ON")
+        self.autostart_camera_btn = QPushButton(f"{t('autostart_camera')}: ON")
         self.autostart_camera_btn.setFixedHeight(36)
         self.autostart_camera_btn.setCheckable(True)
         self.autostart_camera_btn.setChecked(True)
@@ -363,7 +363,7 @@ class SettingsPanel(QWidget):
         self.autostart_camera_btn.clicked.connect(self._toggle_autostart_label)
         layout.addWidget(self.autostart_camera_btn)
 
-        self.fullscreen_btn = QPushButton("Start Fullscreen: ON")
+        self.fullscreen_btn = QPushButton(f"{t('start_fullscreen')}: ON")
         self.fullscreen_btn.setFixedHeight(36)
         self.fullscreen_btn.setCheckable(True)
         self.fullscreen_btn.setChecked(True)
@@ -381,7 +381,7 @@ class SettingsPanel(QWidget):
         self._divider(layout)
 
         sugg_row = QHBoxLayout()
-        sugg_row.addWidget(self._label("SUGGESTION COUNT"))
+        sugg_row.addWidget(self._label(t("suggestion_count")))
         self.sugg_val = QLabel("4")
         self.sugg_val.setFont(QFont("Courier New", 11))
         self.sugg_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
@@ -396,7 +396,7 @@ class SettingsPanel(QWidget):
         layout.addWidget(self.sugg_slider)
     
         # Apply button
-        apply_btn = QPushButton("APPLY SETTINGS")
+        apply_btn = QPushButton(t("apply_settings"))
         apply_btn.setFixedHeight(44)
         apply_btn.setStyleSheet(f"""
             QPushButton {{
@@ -412,7 +412,7 @@ class SettingsPanel(QWidget):
 
         # Reset + Close
         btn_row = QHBoxLayout()
-        for text, slot in [("RESET", self._reset), ("CLOSE", self.hide)]:
+        for text, slot in [(t("reset"), self._reset), (t("close"), self.hide)]:
             btn = QPushButton(text)
             btn.setFixedHeight(34)
             btn.setStyleSheet(f"""
@@ -504,7 +504,7 @@ class SettingsPanel(QWidget):
     def _toggle_mute(self, checked):
         import sounds
         sounds.set_muted(checked)
-        self.mute_btn.setText("Sound OFF" if checked else "Sound ON")
+        self.mute_btn.setText(t("sound_off") if checked else t("sound_on"))
 
     def _populate_cameras(self):
         from utils import list_available_camera
@@ -520,10 +520,10 @@ class SettingsPanel(QWidget):
         return self.camera_combo.currentData()
 
     def _toggle_autostart_label(self, checked):
-        self.autostart_camera_btn.setText(f"Auto-start Camera: {'ON' if checked else 'OFF'}")
+        self.autostart_camera_btn.setText(f"{t('autostart_camera')}: {'ON' if checked else 'OFF'}")
 
     def _toggle_fullscreen_label(self, checked):
-        self.fullscreen_btn.setText(f"Start Fullscreen: {'ON' if checked else 'OFF'}")
+        self.fullscreen_btn.setText(f"{t('start_fullscreen')}: {'ON' if checked else 'OFF'}")
 
     def get_autostart_camera(self):
         return self.autostart_camera_btn.isChecked()
@@ -836,9 +836,7 @@ class MainWindow(QMainWindow):
         sent_row.addWidget(export_btn)
 
         # Controls bar
-        controls = QLabel(
-            "SPACE = confirm word     TAB = accept suggestion     BACKSPACE = delete letter     C = clear all     Ctrl+E = export     ESC = quit"
-        )
+        controls = QLabel(t("controls_hint"))
         controls.setFont(QFont("Courier New", 10))
         controls.setStyleSheet(f"color: {C_GRAY};")
         controls.setAlignment(Qt.AlignCenter)
@@ -913,6 +911,12 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._refresh_display()
 
+        old_camera = self.settings_panel.current_camera
+        self.settings_panel.deleteLater()
+        self.settings_panel = SettingsPanel(self, current_camera=old_camera)
+        self.settings_panel.settings_applied.connect(self._apply_settings)
+        self.settings_panel.hide()
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if hasattr(self, 'settings_panel') and self.settings_panel.isVisible():
@@ -940,7 +944,7 @@ class MainWindow(QMainWindow):
             conf_pct  = int(confidence * 100)
             self.conf_bar.setValue(conf_pct)
             self.conf_bar.setFormat(f"{conf_pct}%")
-            color = C_GREEN if confidence > 0.75 else "#00a5ff"
+            color = C_GREEN if confidence > 0.75 else C_BLUE
             self.conf_bar.setStyleSheet(f"""
                 QProgressBar {{
                     background: {C_DARK}; border-radius: 6px; border: 1px solid {C_BORDER};
