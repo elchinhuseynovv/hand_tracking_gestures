@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
 from collections import defaultdict
 import time
+from translations import t
 
 C_BG    = "#0f0f0f"
 C_PANEL = "#1c1c1c"
@@ -49,7 +50,7 @@ class StatsPanel(QWidget):
 
         # Header
         header_row = QHBoxLayout()
-        title = QLabel("STATISTICS")
+        title = QLabel(t("stats_title")) 
         title.setFont(QFont("Courier New", 14, QFont.Bold))
         title.setStyleSheet(f"color: {C_CYAN}; border: none;")
         header_row.addWidget(title)
@@ -71,15 +72,15 @@ class StatsPanel(QWidget):
         self._divider(layout)
 
         # Session overview
-        overview_lbl = QLabel("SESSION OVERVIEW")
+        overview_lbl = QLabel(t("session_overview")) 
         overview_lbl.setFont(QFont("Courier New", 10))
         overview_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         layout.addWidget(overview_lbl)
 
         stats_grid = QHBoxLayout()
-        self.time_box    = self._stat_box("00:00", "TIME")
-        self.letters_box = self._stat_box("0", "LETTERS")
-        self.words_box   = self._stat_box("0", "WORDS")
+        self.time_box    = self._stat_box("00:00", t("time"))
+        self.letters_box = self._stat_box("0", t("letters"))
+        self.words_box   = self._stat_box("0", t("words"))
         stats_grid.addWidget(self.time_box)
         stats_grid.addWidget(self.letters_box)
         stats_grid.addWidget(self.words_box)
@@ -88,7 +89,7 @@ class StatsPanel(QWidget):
         self._divider(layout)
 
         # Per-letter breakdown
-        breakdown_lbl = QLabel("LETTER BREAKDOWN")
+        breakdown_lbl = QLabel(t("letter_breakdown"))
         breakdown_lbl.setFont(QFont("Courier New", 10))
         breakdown_lbl.setStyleSheet(f"color: {C_GRAY}; border: none;")
         layout.addWidget(breakdown_lbl)
@@ -154,7 +155,7 @@ class StatsPanel(QWidget):
 
         self._divider(layout)
 
-        reset_btn = QPushButton("RESET STATS")
+        reset_btn = QPushButton(t("reset_stats"))
         reset_btn.setFixedHeight(36)
         reset_btn.setStyleSheet(f"""
             QPushButton {{

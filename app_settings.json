@@ -1,0 +1,14 @@
+{
+  "confidence": 0.55,
+  "hold_frames": 20,
+  "buffer_size": 10,
+  "camera_index": 0,
+  "sound_volume": 70,
+  "sound_muted": false,
+  "suggestion_count": 4,
+  "autostart_camers": true,
+  "start_fullscreen": true,
+  "language": "az",
+  "model_path": "models/az_model.pkl",
+  "autostart_camera": true
+}

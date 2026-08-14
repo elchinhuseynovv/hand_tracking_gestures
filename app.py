@@ -19,6 +19,7 @@ from utils import extract_features, list_available_camera
 from stats_panel import StatsPanel
 from autocomplete import AutocompleteEngine
 from translations import t, set_language, get_language
+from settings_store import load_settings, save_settings
 
 # Config
 MODEL_FILE     = "models/az_model.pkl"
@@ -130,9 +131,10 @@ class CameraThread(QThread):
 class SettingsPanel(QWidget):
     settings_applied = pyqtSignal(float, int, int, str, int, int, str)
 
-    def __init__(self, parent=None, current_camera=0):
+    def __init__(self, parent=None, current_camera=0, initial_settings=None):
         super().__init__(parent)
         self.current_camera = current_camera
+        self.initial_settings = initial_settings or {}
         self.setWindowFlags(Qt.Widget)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_GREEN};")
@@ -537,15 +539,29 @@ class SettingsPanel(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
         super().__init__()
-        self.model          = model if model is not None else joblib.load(MODEL_FILE)
-        self.engine         = pyttsx3.init()
+        self.settings = load_settings()
+
+        self.model = model if model is not None else joblib.load(MODEL_FILE)
+        self.engine = pyttsx3.init()
         self.engine.setProperty('rate', 150)
-        self.current_word   = []
-        self.sentence       = []
+        self.current_word = []
+        self.sentence = []
         self.letter_history = deque(maxlen=HISTORY_SIZE)
         self.last_prediction = ""
         self.last_confidence = 0.0
-        self.last_hold       = 0
+        self.last_hold = 0
+
+        set_language(self.settings["language"])
+
+        global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE, SUGGESTION_COUNT
+        CONFIDENCE_MIN = self.settings["confidence"]
+        HOLD_FRAMES = self.settings["hold_frames"]
+        BUFFER_SIZE = self.settings["buffer_size"]
+        SUGGESTION_COUNT = self.settings["suggestion_count"]
+
+        import sounds
+        sounds.set_volume(self.settings["sound_volume"] / 100.0)
+        sounds.set_muted(self.settings["sound_muted"])
 
         self.setWindowTitle("AzSL Recognition")
         self.showFullScreen()
@@ -554,11 +570,11 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._setup_shortcuts()
 
-        self.settings_panel = SettingsPanel(self, current_camera=0)
+        self.settings_panel = SettingsPanel(self, current_camera=self.settings["camera_index"])
         self.settings_panel.settings_applied.connect(self._apply_settings)
         self.settings_panel.hide()
 
-        self.camera_thread = CameraThread(self.model)
+        self.camera_thread = CameraThread(self.model, camera_index=self.settings["camera_index"])
         self.camera_thread.frame_ready.connect(self.update_frame)
         self.camera_thread.prediction_ready.connect(self.update_prediction)
         self.camera_thread.start()
@@ -903,6 +919,22 @@ class MainWindow(QMainWindow):
             self.camera_thread.prediction_buffer = deque(maxlen=buffer)
 
         self._update_suggestions()
+
+        self.settings.update({
+            "confidence": confidence,
+            "hold_frames": hold,
+            "buffer_size": buffer,
+            "camera_index": camera_index,
+            "suggestion_count": suggestion_count,
+            "language": language,
+            "model_path": model_path,
+            "sound_volume": self.settings_panel.sound_slider.value(),
+            "sound_muted": self.settings_panel.mute_btn.isChecked(),
+            "autostart_camera": self.settings_panel.get_autostart_camera(),
+            "start_fullscreen": self.settings_panel.get_start_fullscreen(),
+        })
+        save_settings(self.settings)
+
         print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer} camera={camera_index}")
 
     def _rebuild_ui_language(self):
@@ -913,10 +945,25 @@ class MainWindow(QMainWindow):
 
         old_camera = self.settings_panel.current_camera
         self.settings_panel.deleteLater()
-        self.settings_panel = SettingsPanel(self, current_camera=old_camera)
+        self.settings_panel = SettingsPanel(self, current_camera=old_camera, initial_settings=self.settings)
         self.settings_panel.settings_applied.connect(self._apply_settings)
         self.settings_panel.hide()
 
+        old_letter_counts = self.stats_panel.letter_counts.copy()
+        old_total_letters = self.stats_panel.total_letters
+        old_total_words = self.stats_panel.total_words
+        old_session_start = self.stats_panel.session_start
+
+        self.stats_panel.deleteLater()
+        self.stats_panel = StatsPanel(self)
+        self.stats_panel.letter_counts = old_total_letters
+        self.stats_panel.total_letters = old_total_letters
+        self.stats_panel.total_words = old_total_words
+        self.stats_panel.session_start = old_session_start
+        self.stats_panel._refresh_bars()
+        self.stats_panel._refresh_overview()
+        self.stats_panel.hide()
+        
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if hasattr(self, 'settings_panel') and self.settings_panel.isVisible():
