@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
                              QProgressBar, QSizePolicy, QShortcut, QSlider,
                              QComboBox)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features, list_available_camera
 from stats_panel import StatsPanel
@@ -869,19 +869,49 @@ class MainWindow(QMainWindow):
 
     def _toggle_settings(self):
         if self.settings_panel.isVisible():
-            self.settings_panel.hide()
+            self._animate_panel_out(self.settings_panel)
         else:
             self._reposition_settings()
+            panel_w = self.settings_panel.width()
+            start_x = self.width()
+            end_x = self.width() - panel_w
+            self.settings_panel.move(start_x, 0)
             self.settings_panel.raise_()
             self.settings_panel.show()
+            self._animate_panel_in(self.settings_panel, end_x)
     
     def _toggle_stats(self):
         if self.stats_panel.isVisible():
-            self.stats_panel.hide()
+            self._animate_panel_out(self.stats_panel)
         else:
             self._reposition_stats()
-            self.stats_panel.show()
+            panel_w = self.stats_panel.width()
+            start_x = self.width()
+            end_x = self.width() - panel_w
+            self.stats_panel.move(start_x, 0)
             self.stats_panel.raise_()
+            self.stats_panel.show()
+            self._animate_panel_in(self.stats_panel, end_x)
+
+    def _animate_panel_in(self, panel, end_x):
+        anim = QPropertyAnimation(panel, b"pos")
+        anim.setDuration(220)
+        anim.setStartValue(panel.pos())
+        anim.setEndValue(panel.pos().__class__(end_x, panel.pos().y()))
+        anim.setEasingCurve(QEasingCurve.OutCubic)
+        anim.start()
+        panel._anim = anim
+
+    def _animate_panel_out(self, panel):
+        end_x = self.width()
+        anim = QPropertyAnimation(panel, b"pos")
+        anim.setDuration(180)
+        anim.setStartValue(panel.pos())
+        anim.setEndValue(panel.pos().__class__(end_x, panel.pos().y()))
+        anim.setEasingCurve(QEasingCurve.InCubic)
+        anim.finished.connect(panel.hide)
+        anim.start()
+        panel._anim = anim
 
     def _reposition_stats(self):
         panel_w = 300
