@@ -41,7 +41,10 @@ C_GRAY    = "#8a8a8a"
 C_GRAY_DIM= "#5a5a5a"
 C_DARK    = "#252525"
 C_BORDER  = "#333333"
-
+SPACE_XS = 6
+SPACE_S = 10
+SPACE_M = 16
+SPACE_L = 20
 
 class CameraThread(QThread):
     frame_ready      = pyqtSignal(np.ndarray)
@@ -142,8 +145,8 @@ class SettingsPanel(QWidget):
 
     def _build(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(16)
+        layout.setContentsMargins(SPACE_L, SPACE_L, SPACE_L, SPACE_L)
+        layout.setSpacing(SPACE_M)
 
         # Header
         header_row = QHBoxLayout()
@@ -173,8 +176,11 @@ class SettingsPanel(QWidget):
         self.lang_combo.setStyleSheet(f"""
             QComboBox {{
                 background: #1c1c1c; color: {C_WHITE};
-                border-radius: 6px; padding: 6px 10px; border: none;
+                border-radius: 6px; padding: 6px 10px; border: 1px solid transparent;
                 font-family: 'Courier New'; font-size: 12px;
+            }}
+            QComboBox:hover {{
+                border: 1px solid {C_GREEN};
             }}
             QComboBox QAbstractItemView {{
                 background: #1c1c1c; color: {C_WHITE};
@@ -221,13 +227,15 @@ class SettingsPanel(QWidget):
         layout.addWidget(self._label(t("camera")))
         self.camera_combo = QComboBox()
         self.camera_combo.setFixedHeight(34)
-        self.camera_combo.setStyleSheet(f"""
+        self.lang_combo.setStyleSheet(f"""
             QComboBox {{
                 background: #1c1c1c; color: {C_WHITE};
-                border-radius: 6px; padding: 6px 10px; border: none;
-                font-family: 'Courier New'; font-size: 11px;
+                border-radius: 6px; padding: 6px 10px; border: 1px solid transparent;
+                font-family: 'Courier New'; font-size: 12px;
             }}
-            QComboBox::drop-down {{ border: none; }}
+            QComboBox:hover {{
+                border: 1px solid {C_GREEN};
+            }}
             QComboBox QAbstractItemView {{
                 background: #1c1c1c; color: {C_WHITE};
                 selection-background-color: {C_GREEN};
@@ -591,8 +599,8 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
-        root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(10)
+        root.setContentsMargins(SPACE_M, SPACE_M, SPACE_M, SPACE_M)
+        root.setSpacing(SPACE_S)
 
         # Title bar
         title_bar = QHBoxLayout()
@@ -646,7 +654,7 @@ class MainWindow(QMainWindow):
 
         # Main row
         main_row = QHBoxLayout()
-        main_row.setSpacing(12)
+        main_row.setSpacing(SPACE_S + 2)
 
         self.cam_label = QLabel()
         self.cam_label.setMinimumSize(700, 480)
@@ -660,14 +668,14 @@ class MainWindow(QMainWindow):
         main_row.addWidget(self.cam_label, 65)
 
         right = QVBoxLayout()
-        right.setSpacing(10)
+        right.setSpacing(SPACE_S)
 
         # Letter box
         letter_panel = QWidget()
         letter_panel.setMinimumHeight(220)
         letter_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         letter_layout = QVBoxLayout(letter_panel)
-        letter_layout.setContentsMargins(16, 12, 16, 12)
+        letter_layout.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
         lbl_title = QLabel(t("detected_letter"))
         lbl_title.setFont(QFont("Courier New", 10))
         lbl_title.setStyleSheet(f"color: {C_GRAY}; border: none;")
@@ -685,7 +693,7 @@ class MainWindow(QMainWindow):
         conf_panel.setMinimumHeight(80)
         conf_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         conf_layout = QVBoxLayout(conf_panel)
-        conf_layout.setContentsMargins(16, 10, 16, 10)
+        conf_layout.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
         conf_lbl = QLabel(t("confidence"))
         conf_lbl.setFont(QFont("Courier New", 10))
         conf_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
@@ -710,7 +718,7 @@ class MainWindow(QMainWindow):
         hold_panel.setMinimumHeight(80)
         hold_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         hold_layout = QVBoxLayout(hold_panel)
-        hold_layout.setContentsMargins(16, 10, 16, 10)
+        hold_layout.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
         hold_lbl = QLabel(t("hold_progress"))
         hold_lbl.setFont(QFont("Courier New", 10))
         hold_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
@@ -733,7 +741,7 @@ class MainWindow(QMainWindow):
         hist_panel.setMinimumHeight(80)
         hist_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 12px; border: 1px solid {C_BORDER};")
         hist_layout = QVBoxLayout(hist_panel)
-        hist_layout.setContentsMargins(16, 10, 16, 10)
+        hist_layout.setContentsMargins(SPACE_M, SPACE_S, SPACE_M, SPACE_S)
         hist_lbl = QLabel(t("history"))
         hist_lbl.setFont(QFont("Courier New", 10))
         hist_lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1.5px; font-weight: 600;")
@@ -753,7 +761,7 @@ class MainWindow(QMainWindow):
         word_panel.setFixedHeight(64)
         word_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid {C_BORDER};")
         word_row = QHBoxLayout(word_panel)
-        word_row.setContentsMargins(20, 0, 20, 0)
+        word_row.setContentsMargins(SPACE_L, 0, SPACE_L, 0)
         word_lbl = QLabel(t("word"))
         word_lbl.setFixedWidth(90)
         word_lbl.setFont(QFont("Courier New", 10))
@@ -771,8 +779,8 @@ class MainWindow(QMainWindow):
         self.suggestions_panel.setFixedHeight(44)
         self.suggestions_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid {C_BORDER};")
         sugg_layout = QHBoxLayout(self.suggestions_panel)
-        sugg_layout.setContentsMargins(16, 0, 16, 0)
-        sugg_layout.setSpacing(10)
+        sugg_layout.setContentsMargins(SPACE_M, 0, SPACE_M, 0)
+        sugg_layout.setSpacing(SPACE_S)
 
         sugg_label = QLabel(t("suggest"))
         sugg_label.setFixedWidth(90)
@@ -804,12 +812,12 @@ class MainWindow(QMainWindow):
 
         # Sentence row
         sent_row = QHBoxLayout()
-        sent_row.setSpacing(10)
+        sent_row.setSpacing(SPACE_S)
         sent_panel = QWidget()
         sent_panel.setFixedHeight(64)
         sent_panel.setStyleSheet(f"background: {C_PANEL}; border-radius: 10px; border: 1px solid {C_BORDER};")
         sent_layout = QHBoxLayout(sent_panel)
-        sent_layout.setContentsMargins(20, 0, 20, 0)
+        sent_layout.setContentsMargins(SPACE_L, 0, SPACE_L, 0)
         sent_lbl = QLabel(t("sentence"))
         sent_lbl.setFixedWidth(90)
         sent_lbl.setFont(QFont("Courier New", 10))
@@ -913,6 +921,19 @@ class MainWindow(QMainWindow):
         anim.start()
         panel._anim = anim
 
+    def _pulse_widget(self, widget):
+        from PyQt5.QtCore import QRect
+        anim = QPropertyAnimation(widget, b"geometry")
+        anim.setDuration(150)
+        rect = widget.geometry()
+        grown = QRect(rect.x() - 4, rect.y() - 4, rect.width() + 8, rect.height() +8)
+        anim.setKeyValueAt(0, rect)
+        anim.setKeyValueAt(0.5, grown)
+        anim.setKeyValueAt(1, rect)
+        anim.setEasingCurve(QEasingCurve.OutQuad)
+        anim.start()
+        widget._pulse_anim = anim
+
     def _reposition_stats(self):
         panel_w = 300
         self.stats_panel.setGeometry(self.width() - panel_w, 0, panel_w, self.height())
@@ -986,7 +1007,7 @@ class MainWindow(QMainWindow):
 
         self.stats_panel.deleteLater()
         self.stats_panel = StatsPanel(self)
-        self.stats_panel.letter_counts = old_total_letters
+        self.stats_panel.letter_counts = old_letter_counts
         self.stats_panel.total_letters = old_total_letters
         self.stats_panel.total_words = old_total_words
         self.stats_panel.session_start = old_session_start
@@ -1019,7 +1040,7 @@ class MainWindow(QMainWindow):
             self.letter_label.setText(prediction)
             self.letter_label.setStyleSheet(f"color: {C_GREEN}; border: none;")
             conf_pct  = int(confidence * 100)
-            self.conf_bar.setValue(conf_pct)
+            self._animate_bar(self.conf_bar, conf_pct)
             self.conf_bar.setFormat(f"{conf_pct}%")
             color = C_GREEN if confidence > 0.75 else C_BLUE
             self.conf_bar.setStyleSheet(f"""
@@ -1030,7 +1051,7 @@ class MainWindow(QMainWindow):
                 }}
                 QProgressBar::chunk {{ background: {color}; border-radius: 6px; }}
             """)
-            self.hold_bar.setValue(hold_counter)
+            self._animate_bar(self.hold_bar, hold_counter)
 
             if hold_counter >= HOLD_FRAMES:
                 self.current_word.append(prediction)
@@ -1039,6 +1060,7 @@ class MainWindow(QMainWindow):
                 sounds.play_letter_confirm()
                 self.stats_panel.record_letter(prediction)
                 self._refresh_display()
+                self._pulse_widget(self.letter_label.parentWidget())
         else:
             self.letter_label.setText("—")
             self.letter_label.setStyleSheet(f"color: {C_GRAY_DIM}; border: none;")
