@@ -934,6 +934,15 @@ class MainWindow(QMainWindow):
         anim.start()
         widget._pulse_anim = anim
 
+    def _animate_bar(self, bar, target_value):
+        anim = QPropertyAnimation(bar, b"value")
+        anim.setDuration(120)
+        anim.setStartValue(bar.value())
+        anim.setEndValue(target_value)
+        anim.setEasingCurve(QEasingCurve.OutQuad)
+        anim.start()
+        bar._anim = anim
+
     def _reposition_stats(self):
         panel_w = 300
         self.stats_panel.setGeometry(self.width() - panel_w, 0, panel_w, self.height())
