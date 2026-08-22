@@ -10,5 +10,8 @@
   "start_fullscreen": true,
   "language": "az",
   "model_path": "models/az_model.pkl",
-  "autostart_camera": true
+  "autostart_camera": true,
+  "window_fullscreen": true,
+  "mirror_preview": true,
+  "show_fps": false
 }

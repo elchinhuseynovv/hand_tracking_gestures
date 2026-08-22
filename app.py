@@ -12,7 +12,7 @@ from mediapipe.python.solutions import drawing_styles as mp_styles
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
                              QProgressBar, QSizePolicy, QShortcut, QSlider,
-                             QComboBox)
+                             QComboBox, QTabWidget)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features, list_available_camera
@@ -132,7 +132,7 @@ class CameraThread(QThread):
 
     
 class SettingsPanel(QWidget):
-    settings_applied = pyqtSignal(float, int, int, str, int, int, str)
+    settings_applied = pyqtSignal(float, int, int, str, int, int, str, bool, bool, bool)
 
     def __init__(self, parent=None, current_camera=0, initial_settings=None):
         super().__init__(parent)
@@ -170,241 +170,44 @@ class SettingsPanel(QWidget):
         layout.addLayout(header_row)
 
         self._divider(layout)
-        layout.addWidget(self._label(t("language")))
-        self.lang_combo = QComboBox()
-        self.lang_combo.setFixedHeight(34)
-        self.lang_combo.setStyleSheet(f"""
-            QComboBox {{
-                background: #1c1c1c; color: {C_WHITE};
-                border-radius: 6px; padding: 6px 10px; border: 1px solid transparent;
-                font-family: 'Courier New'; font-size: 12px;
-            }}
-            QComboBox:hover {{
-                border: 1px solid {C_GREEN};
-            }}
-            QComboBox QAbstractItemView {{
-                background: #1c1c1c; color: {C_WHITE};
-                selection-background-color: {C_GREEN};
-                selection-color: #000;
-            }}
-        """)
-        self.lang_combo.addItem("English", "en")
-        self.lang_combo.addItem("Azərbaycanca", "az")
-        self.lang_combo.addItem("Русский", "ru")
-        current = get_language()
-        idx = {"en": 0, "az": 1, "ru": 2}.get(current, 0)
-        self.lang_combo.setCurrentIndex(idx)
-        layout.addWidget(self.lang_combo)
 
-        # Model file
-        layout.addWidget(self._label(t("model_file")))
-        model_row = QHBoxLayout()
-        self.model_input = QLabel("az_model.pkl")
-        self.model_input.setFont(QFont("Courier New", 11))
-        self.model_input.setStyleSheet(f"""
-            background: #1c1c1c; color: {C_WHITE};
-            border-radius: 6px; padding: 6px 10px; border: none;
-        """)
-        self.model_input.setFixedHeight(34)
-        browse_btn = QPushButton("...")
-        browse_btn.setFixedSize(34, 34)
-        browse_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: #1c1c1c; color: {C_GREEN};
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 14px;
+        # Tabs
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: none; background: transparent;
             }}
-            QPushButton:hover {{ background: #2a2a2a; }}
-        """)
-        browse_btn.clicked.connect(self._browse_model)
-        model_row.addWidget(self.model_input, 1)
-        model_row.addWidget(browse_btn)
-        layout.addLayout(model_row)
-
-        self._divider(layout)
-
-        # Cam selector
-        layout.addWidget(self._label(t("camera")))
-        self.camera_combo = QComboBox()
-        self.camera_combo.setFixedHeight(34)
-        self.lang_combo.setStyleSheet(f"""
-            QComboBox {{
-                background: #1c1c1c; color: {C_WHITE};
-                border-radius: 6px; padding: 6px 10px; border: 1px solid transparent;
-                font-family: 'Courier New'; font-size: 12px;
+            QTabBar::tab {{
+                background: {C_DARK}; color: {C_GRAY};
+                padding: 8px 14px; margin-right: 4px;
+                border-top-left-radius: 6px; border-top-right-radius: 6px;
+                font-family: 'Courier New'; font-size: 11px;
             }}
-            QComboBox:hover {{
-                border: 1px solid {C_GREEN};
+            QTabBar::tab:selected {{
+                background: {C_GREEN}; color: #000; font-weight: bold;
             }}
-            QComboBox QAbstractItemView {{
-                background: #1c1c1c; color: {C_WHITE};
-                selection-background-color: {C_GREEN};
-                selection-color: #000;
+            QTabBar::tab:hover:!selected {{
+                color: {C_WHITE};
             }}
         """)
-        self._populate_cameras()
-        layout.addWidget(self.camera_combo)
 
-        refresh_cam_btn = QPushButton(t("refresh_cameras"))
-        refresh_cam_btn.setFixedHeight(30)
-        refresh_cam_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: #1c1c1c; color: {C_GRAY};
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 10px;
-            }}
-            QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
-        """)
-        refresh_cam_btn.clicked.connect(self._populate_cameras)
-        layout.addWidget(refresh_cam_btn)
+        general_tab = QWidget()
+        display_tab = QWidget()
+        sound_tab   = QWidget()
+        about_tab   = QWidget()
 
-        # Confidence slider
-        conf_row = QHBoxLayout()
-        conf_row.addWidget(self._label(t("confidence_threshold")))
-        self.conf_val = QLabel("55%")
-        self.conf_val.setFont(QFont("Courier New", 11))
-        self.conf_val.setStyleSheet(f"color: {C_GREEN}; border: none;")
-        conf_row.addWidget(self.conf_val)
-        layout.addLayout(conf_row)
-        self.conf_slider = QSlider(Qt.Horizontal)
-        self.conf_slider.setRange(10, 95)
-        self.conf_slider.setValue(55)
-        self.conf_slider.setStyleSheet(self._slider_style(C_GREEN))
-        self.conf_slider.valueChanged.connect(lambda v: self.conf_val.setText(f"{v}%"))
-        layout.addWidget(self.conf_slider)
-        hint = QHBoxLayout()
-        hint.addWidget(self._hint("0% (lenient)"))
-        hint.addStretch()
-        hint.addWidget(self._hint("100% (strict)"))
-        layout.addLayout(hint)
+        self.tabs.addTab(general_tab, t("tab_general"))
+        self.tabs.addTab(display_tab, t("tab_display"))
+        self.tabs.addTab(sound_tab, t("tab_sound"))
+        self.tabs.addTab(about_tab, t("tab_about"))
 
-        self._divider(layout)
+        layout.addWidget(self.tabs, 1)
 
-        # Hold slider
-        hold_row = QHBoxLayout()
-        hold_row.addWidget(self._label(t("hold_speed")))
-        self.hold_val = QLabel("20 frames")
-        self.hold_val.setFont(QFont("Courier New", 11))
-        self.hold_val.setStyleSheet(f"color: {C_CYAN}; border: none;")
-        hold_row.addWidget(self.hold_val)
-        layout.addLayout(hold_row)
-        self.hold_slider = QSlider(Qt.Horizontal)
-        self.hold_slider.setRange(5, 40)
-        self.hold_slider.setValue(20)
-        self.hold_slider.setStyleSheet(self._slider_style(C_CYAN))
-        self.hold_slider.valueChanged.connect(lambda v: self.hold_val.setText(f"{v} frames"))
-        layout.addWidget(self.hold_slider)
-        hint2 = QHBoxLayout()
-        hint2.addWidget(self._hint("5 (fast)"))
-        hint2.addStretch()
-        hint2.addWidget(self._hint("40 (slow)"))
-        layout.addLayout(hint2)
+        self._build_general_tab(general_tab)
+        self._build_display_tab(display_tab)
+        self._build_sound_tab(sound_tab)
+        self._build_about_tab(about_tab)
 
-        self._divider(layout)
-
-        # Buffer slider
-        buf_row = QHBoxLayout()
-        buf_row.addWidget(self._label(t("smoothing_buffer")))
-        self.buf_val = QLabel("10 frames")
-        self.buf_val.setFont(QFont("Courier New", 11))
-        self.buf_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
-        buf_row.addWidget(self.buf_val)
-        layout.addLayout(buf_row)
-        self.buf_slider = QSlider(Qt.Horizontal)
-        self.buf_slider.setRange(3, 20)
-        self.buf_slider.setValue(10)
-        self.buf_slider.setStyleSheet(self._slider_style(C_BLUE))
-        self.buf_slider.valueChanged.connect(lambda v: self.buf_val.setText(f"{v} frames"))
-        layout.addWidget(self.buf_slider)
-        hint3 = QHBoxLayout()
-        hint3.addWidget(self._hint("3 (fast)"))
-        hint3.addStretch()
-        hint3.addWidget(self._hint("20 (smooth)"))
-        layout.addLayout(hint3)
-
-        self._divider(layout)
-
-        #Sound section
-        sound_row = QHBoxLayout()
-        sound_row.addWidget(self._label(t("sound_volume")))
-        self.sound_val = QLabel("70%")
-        self.sound_val.setFont(QFont("Courier New", 11))
-        self.sound_val.setStyleSheet(f"color: {C_GREEN}; border:none;")
-        sound_row.addWidget(self.sound_val)
-        layout.addLayout(sound_row)
-
-        self.sound_slider = QSlider(Qt.Horizontal)
-        self.sound_slider.setRange(0, 100)
-        self.sound_slider.setValue(70)
-        self.sound_slider.setStyleSheet(self._slider_style(C_GREEN))
-        self.sound_slider.valueChanged.connect(self._on_volume_change)
-        layout.addWidget(self.sound_slider)
-
-        self.mute_btn = QPushButton(t("sound_on"))
-        self.mute_btn.setFixedHeight(36)
-        self.mute_btn.setCheckable(True)
-        self.mute_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {C_DARK}; color: {C_WHITE};
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 12px;
-            }}
-            QPushButton:checked {{ background: #ff5f57; color: #000; }}
-        """)
-        self.mute_btn.clicked.connect(self._toggle_mute)
-        layout.addWidget(self.mute_btn)
-
-        self._divider(layout)
-
-        layout.addWidget(self._label(t("startup_behavior")))
-
-        self.autostart_camera_btn = QPushButton(f"{t('autostart_camera')}: ON")
-        self.autostart_camera_btn.setFixedHeight(36)
-        self.autostart_camera_btn.setCheckable(True)
-        self.autostart_camera_btn.setChecked(True)
-        self.autostart_camera_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {C_GREEN}; color: #000;
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 12px;
-            }}
-            QPushButton:!checked {{ background: {C_DARK}; color: {C_WHITE}; }}
-        """)
-        self.autostart_camera_btn.clicked.connect(self._toggle_autostart_label)
-        layout.addWidget(self.autostart_camera_btn)
-
-        self.fullscreen_btn = QPushButton(f"{t('start_fullscreen')}: ON")
-        self.fullscreen_btn.setFixedHeight(36)
-        self.fullscreen_btn.setCheckable(True)
-        self.fullscreen_btn.setChecked(True)
-        self.fullscreen_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {C_GREEN}; color: #000;
-                border: none; border-radius: 6px;
-                font-family: 'Courier New'; font-size: 12px;
-            }}
-            QPushButton:!checked {{ background: {C_DARK}; color: {C_WHITE}; }}
-        """)
-        self.fullscreen_btn.clicked.connect(self._toggle_fullscreen_label)
-        layout.addWidget(self.fullscreen_btn)
-
-        self._divider(layout)
-
-        sugg_row = QHBoxLayout()
-        sugg_row.addWidget(self._label(t("suggestion_count")))
-        self.sugg_val = QLabel("4")
-        self.sugg_val.setFont(QFont("Courier New", 11))
-        self.sugg_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
-        sugg_row.addWidget(self.sugg_val)
-        layout.addLayout(sugg_row)
-
-        self.sugg_slider = QSlider(Qt.Horizontal)
-        self.sugg_slider.setRange(1, 6)
-        self.sugg_slider.setValue(4)
-        self.sugg_slider.setStyleSheet(self._slider_style(C_BLUE))
-        self.sugg_slider.valueChanged.connect(lambda v: self.sugg_val.setText(str(v)))
-        layout.addWidget(self.sugg_slider)
-    
         # Apply button
         apply_btn = QPushButton(t("apply_settings"))
         apply_btn.setFixedHeight(44)
@@ -486,10 +289,14 @@ class SettingsPanel(QWidget):
         camera_index = self.get_selected_camera()
         suggestion_count = self.get_suggestion_count()
         language = self.lang_combo.currentData()
+        window_fullscreen = self.get_window_fullscreen()
+        mirror_preview = self.get_mirror_preview()
+        show_fps = self.get_show_fps()
 
-        self._model_path = getattr(self, '_model_path',
-                                f"models/{self.model_input.text()}")
-        self.settings_applied.emit(confidence, hold, buffer, self._model_path, camera_index, suggestion_count, language)  # ← added language
+        self._model_path = getattr(self, '_model_path', f"models/{self.model_input.text()}")
+        self.settings_applied.emit(confidence, hold, buffer, self._model_path,
+                                camera_index, suggestion_count, language,
+                                window_fullscreen, mirror_preview, show_fps)
         self.hide()
 
     def _reset(self):
@@ -543,6 +350,296 @@ class SettingsPanel(QWidget):
 
     def get_suggestion_count(self):
         return self.sugg_slider.value()
+
+    def _build_general_tab(self, tab):
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(4, SPACE_M, 4, 4)
+        layout.setSpacing(SPACE_M)
+
+        layout.addWidget(self._label(t("language")))
+        self.lang_combo = QComboBox()
+        self.lang_combo.setFixedHeight(34)
+        self.lang_combo.setStyleSheet(self._combo_style())
+        self.lang_combo.addItem("English", "en")
+        self.lang_combo.addItem("Azərbaycanca", "az")
+        self.lang_combo.addItem("Русский", "ru")
+        current = get_language()
+        idx = {"en": 0, "az": 1, "ru": 2}.get(current, 0)
+        self.lang_combo.setCurrentIndex(idx)
+        layout.addWidget(self.lang_combo)
+
+        self._divider(layout)
+
+        layout.addWidget(self._label(t("model_file")))
+        model_row = QHBoxLayout()
+        self.model_input = QLabel("az_model.pkl")
+        self.model_input.setFont(QFont("Courier New", 11))
+        self.model_input.setStyleSheet(f"background: #1c1c1c; color: {C_WHITE}; border-radius: 6px; padding: 6px 10px; border: none;")
+        self.model_input.setFixedHeight(34)
+        browse_btn = QPushButton("...")
+        browse_btn.setFixedSize(34, 34)
+        browse_btn.setStyleSheet(f"""
+            QPushButton {{ background: #1c1c1c; color: {C_GREEN}; border: none; border-radius: 6px; font-family: 'Courier New'; font-size: 14px; }}
+            QPushButton:hover {{ background: #2a2a2a; }}
+        """)
+        browse_btn.clicked.connect(self._browse_model)
+        model_row.addWidget(self.model_input, 1)
+        model_row.addWidget(browse_btn)
+        layout.addLayout(model_row)
+
+        self._divider(layout)
+
+        layout.addWidget(self._label(t("camera")))
+        self.camera_combo = QComboBox()
+        self.camera_combo.setFixedHeight(34)
+        self.camera_combo.setStyleSheet(self._combo_style())
+        self._populate_cameras()
+        layout.addWidget(self.camera_combo)
+
+        refresh_cam_btn = QPushButton(t("refresh_cameras"))
+        refresh_cam_btn.setFixedHeight(30)
+        refresh_cam_btn.setStyleSheet(f"""
+            QPushButton {{ background: #1c1c1c; color: {C_GRAY}; border: none; border-radius: 6px; font-family: 'Courier New'; font-size: 10px; }}
+            QPushButton:hover {{ color: {C_WHITE}; background: #2a2a2a; }}
+        """)
+        refresh_cam_btn.clicked.connect(self._populate_cameras)
+        layout.addWidget(refresh_cam_btn)
+
+        self._divider(layout)
+
+        conf_row = QHBoxLayout()
+        conf_row.addWidget(self._label(t("confidence_threshold")))
+        self.conf_val = QLabel("55%")
+        self.conf_val.setFont(QFont("Courier New", 11))
+        self.conf_val.setStyleSheet(f"color: {C_GREEN}; border: none;")
+        conf_row.addWidget(self.conf_val)
+        layout.addLayout(conf_row)
+        self.conf_slider = QSlider(Qt.Horizontal)
+        self.conf_slider.setRange(10, 95)
+        self.conf_slider.setValue(55)
+        self.conf_slider.setStyleSheet(self._slider_style(C_GREEN))
+        self.conf_slider.valueChanged.connect(lambda v: self.conf_val.setText(f"{v}%"))
+        layout.addWidget(self.conf_slider)
+
+        self._divider(layout)
+
+        hold_row = QHBoxLayout()
+        hold_row.addWidget(self._label(t("hold_speed")))
+        self.hold_val = QLabel("20 frames")
+        self.hold_val.setFont(QFont("Courier New", 11))
+        self.hold_val.setStyleSheet(f"color: {C_CYAN}; border: none;")
+        hold_row.addWidget(self.hold_val)
+        layout.addLayout(hold_row)
+        self.hold_slider = QSlider(Qt.Horizontal)
+        self.hold_slider.setRange(5, 40)
+        self.hold_slider.setValue(20)
+        self.hold_slider.setStyleSheet(self._slider_style(C_CYAN))
+        self.hold_slider.valueChanged.connect(lambda v: self.hold_val.setText(f"{v} frames"))
+        layout.addWidget(self.hold_slider)
+
+        self._divider(layout)
+
+        buf_row = QHBoxLayout()
+        buf_row.addWidget(self._label(t("smoothing_buffer")))
+        self.buf_val = QLabel("10 frames")
+        self.buf_val.setFont(QFont("Courier New", 11))
+        self.buf_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
+        buf_row.addWidget(self.buf_val)
+        layout.addLayout(buf_row)
+        self.buf_slider = QSlider(Qt.Horizontal)
+        self.buf_slider.setRange(3, 20)
+        self.buf_slider.setValue(10)
+        self.buf_slider.setStyleSheet(self._slider_style(C_BLUE))
+        self.buf_slider.valueChanged.connect(lambda v: self.buf_val.setText(f"{v} frames"))
+        layout.addWidget(self.buf_slider)
+
+        self._divider(layout)
+
+        sugg_row = QHBoxLayout()
+        sugg_row.addWidget(self._label(t("suggestion_count")))
+        self.sugg_val = QLabel("4")
+        self.sugg_val.setFont(QFont("Courier New", 11))
+        self.sugg_val.setStyleSheet(f"color: {C_BLUE}; border: none;")
+        sugg_row.addWidget(self.sugg_val)
+        layout.addLayout(sugg_row)
+        self.sugg_slider = QSlider(Qt.Horizontal)
+        self.sugg_slider.setRange(1, 6)
+        self.sugg_slider.setValue(4)
+        self.sugg_slider.setStyleSheet(self._slider_style(C_BLUE))
+        self.sugg_slider.valueChanged.connect(lambda v: self.sugg_val.setText(str(v)))
+        layout.addWidget(self.sugg_slider)
+
+        layout.addStretch()
+
+
+    def _build_display_tab(self, tab):
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(4, SPACE_M, 4, 4)
+        layout.setSpacing(SPACE_M)
+
+        layout.addWidget(self._label(t("startup_behavior")))
+
+        self.autostart_camera_btn = QPushButton(f"{t('autostart_camera')}: ON")
+        self.autostart_camera_btn.setFixedHeight(36)
+        self.autostart_camera_btn.setCheckable(True)
+        self.autostart_camera_btn.setChecked(True)
+        self.autostart_camera_btn.setStyleSheet(self._toggle_style())
+        self.autostart_camera_btn.clicked.connect(self._toggle_autostart_label)
+        layout.addWidget(self.autostart_camera_btn)
+
+        self.fullscreen_btn = QPushButton(f"{t('start_fullscreen')}: ON")
+        self.fullscreen_btn.setFixedHeight(36)
+        self.fullscreen_btn.setCheckable(True)
+        self.fullscreen_btn.setChecked(True)
+        self.fullscreen_btn.setStyleSheet(self._toggle_style())
+        self.fullscreen_btn.clicked.connect(self._toggle_fullscreen_label)
+        layout.addWidget(self.fullscreen_btn)
+
+        self._divider(layout)
+
+        self.window_mode_btn = QPushButton(f"{t('window_mode')}: {t('fullscreen')}")
+        self.window_mode_btn.setFixedHeight(36)
+        self.window_mode_btn.setCheckable(True)
+        self.window_mode_btn.setChecked(True)
+        self.window_mode_btn.setStyleSheet(self._toggle_style())
+        self.window_mode_btn.clicked.connect(self._toggle_window_mode_label)
+        layout.addWidget(self.window_mode_btn)
+
+        self.mirror_btn = QPushButton(f"{t('mirror_preview')}: ON")
+        self.mirror_btn.setFixedHeight(36)
+        self.mirror_btn.setCheckable(True)
+        self.mirror_btn.setChecked(True)
+        self.mirror_btn.setStyleSheet(self._toggle_style())
+        self.mirror_btn.clicked.connect(self._toggle_mirror_label)
+        layout.addWidget(self.mirror_btn)
+
+        self.fps_btn = QPushButton(f"{t('fps_counter')}: OFF")
+        self.fps_btn.setFixedHeight(36)
+        self.fps_btn.setCheckable(True)
+        self.fps_btn.setChecked(False)
+        self.fps_btn.setStyleSheet(self._toggle_style())
+        self.fps_btn.clicked.connect(self._toggle_fps_label)
+        layout.addWidget(self.fps_btn)
+
+        layout.addStretch()
+
+
+    def _build_sound_tab(self, tab):
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(4, SPACE_M, 4, 4)
+        layout.setSpacing(SPACE_M)
+
+        sound_row = QHBoxLayout()
+        sound_row.addWidget(self._label(t("sound_volume")))
+        self.sound_val = QLabel("70%")
+        self.sound_val.setFont(QFont("Courier New", 11))
+        self.sound_val.setStyleSheet(f"color: {C_GREEN}; border:none;")
+        sound_row.addWidget(self.sound_val)
+        layout.addLayout(sound_row)
+
+        self.sound_slider = QSlider(Qt.Horizontal)
+        self.sound_slider.setRange(0, 100)
+        self.sound_slider.setValue(70)
+        self.sound_slider.setStyleSheet(self._slider_style(C_GREEN))
+        self.sound_slider.valueChanged.connect(self._on_volume_change)
+        layout.addWidget(self.sound_slider)
+
+        self.mute_btn = QPushButton(t("sound_on"))
+        self.mute_btn.setFixedHeight(36)
+        self.mute_btn.setCheckable(True)
+        self.mute_btn.setStyleSheet(f"""
+            QPushButton {{ background: {C_DARK}; color: {C_WHITE}; border: none; border-radius: 6px; font-family: 'Courier New'; font-size: 12px; }}
+            QPushButton:checked {{ background: #ff5f57; color: #000; }}
+        """)
+        self.mute_btn.clicked.connect(self._toggle_mute)
+        layout.addWidget(self.mute_btn)
+
+        layout.addStretch()
+
+
+    def _build_about_tab(self, tab):
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(4, SPACE_M, 4, 4)
+        layout.setSpacing(SPACE_S)
+        layout.setAlignment(Qt.AlignTop)
+
+        app_name = QLabel(t("app_title"))
+        app_name.setFont(QFont("Courier New", 18, QFont.Bold))
+        app_name.setStyleSheet(f"color: {C_GREEN}; border: none;")
+        layout.addWidget(app_name)
+
+        version = QLabel(t("version_label") + " 1.0.0")
+        version.setFont(QFont("Courier New", 10))
+        version.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        layout.addWidget(version)
+
+        layout.addSpacing(SPACE_M)
+
+        desc = QLabel(t("about_description"))
+        desc.setFont(QFont("Courier New", 10))
+        desc.setStyleSheet(f"color: {C_WHITE}; border: none;")
+        desc.setWordWrap(True)
+        layout.addWidget(desc)
+
+        layout.addSpacing(SPACE_M)
+
+        author = QLabel(t("author_label") + " Elchin Huseynov")
+        author.setFont(QFont("Courier New", 10))
+        author.setStyleSheet(f"color: {C_GRAY}; border: none;")
+        layout.addWidget(author)
+
+        dataset = QLabel(t("dataset_credit"))
+        dataset.setFont(QFont("Courier New", 9))
+        dataset.setStyleSheet(f"color: {C_GRAY_DIM}; border: none;")
+        dataset.setWordWrap(True)
+        layout.addWidget(dataset)
+
+        layout.addStretch()
+
+
+    def _combo_style(self):
+        return f"""
+            QComboBox {{
+                background: #1c1c1c; color: {C_WHITE};
+                border-radius: 6px; padding: 6px 10px; border: 1px solid transparent;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QComboBox:hover {{ border: 1px solid {C_GREEN}; }}
+            QComboBox QAbstractItemView {{
+                background: #1c1c1c; color: {C_WHITE};
+                selection-background-color: {C_GREEN}; selection-color: #000;
+            }}
+        """
+
+    def _toggle_style(self):
+        return f"""
+            QPushButton {{
+                background: {C_GREEN}; color: #000;
+                border: none; border-radius: 6px;
+                font-family: 'Courier New'; font-size: 12px;
+            }}
+            QPushButton:!checked {{ background: {C_DARK}; color: {C_WHITE}; }}
+        """
+
+    def _toggle_window_mode_label(self, checked):
+        mode = t("fullscreen") if checked else t("windowed")
+        self.window_mode_btn.setText(f"{t('window_mode')}: {mode}")
+
+    def _toggle_mirror_label(self, checked):
+        self.mirror_btn.setText(f"{t('mirror_preview')}: {'ON' if checked else 'OFF'}")
+
+    def _toggle_fps_label(self, checked):
+        self.fps_btn.setText(f"{t('fps_counter')}: {'ON' if checked else 'OFF'}")
+
+    def get_window_fullscreen(self):
+        return self.window_mode_btn.isChecked()
+
+    def get_mirror_preview(self):
+        return self.mirror_btn.isChecked()
+
+    def get_show_fps(self):
+        return self.fps_btn.isChecked()
+
     
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
@@ -955,7 +1052,8 @@ class MainWindow(QMainWindow):
         self.settings_panel.setFixedSize(panel_w, self.height())
         self.settings_panel.move(self.width() - panel_w, 0)
 
-    def _apply_settings(self, confidence, hold, buffer, model_path, camera_index, suggestion_count, language):
+    def _apply_settings(self, confidence, hold, buffer, model_path, camera_index,
+                    suggestion_count, language, window_fullscreen, mirror_preview, show_fps):
         global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE, SUGGESTION_COUNT
         CONFIDENCE_MIN = confidence
         HOLD_FRAMES = hold
@@ -980,6 +1078,14 @@ class MainWindow(QMainWindow):
 
         self._update_suggestions()
 
+        if window_fullscreen:
+            self.showFullScreen()
+        else:
+            self.showNormal()
+
+        self.mirror_preview = mirror_preview
+        self.show_fps = show_fps
+        
         self.settings.update({
             "confidence": confidence,
             "hold_frames": hold,
@@ -992,6 +1098,9 @@ class MainWindow(QMainWindow):
             "sound_muted": self.settings_panel.mute_btn.isChecked(),
             "autostart_camera": self.settings_panel.get_autostart_camera(),
             "start_fullscreen": self.settings_panel.get_start_fullscreen(),
+            "window_fullscreen": window_fullscreen,
+            "mirror_preview": mirror_preview,
+            "show_fps": show_fps,
         })
         save_settings(self.settings)
 
