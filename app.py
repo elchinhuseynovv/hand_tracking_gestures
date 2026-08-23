@@ -140,6 +140,7 @@ class SettingsPanel(QWidget):
         self.initial_settings = initial_settings or {}
         self.setWindowFlags(Qt.Widget)
         self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setFixedSize(520, 620)
         self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_GREEN};")
         self._build()
 
@@ -165,7 +166,7 @@ class SettingsPanel(QWidget):
             }}
             QPushButton:hover {{ background: #3a3a3a; color: {C_WHITE}; }}
         """)
-        close_btn.clicked.connect(self.hide)
+        close_btn.clicked.connect(lambda: self.parent()._toggle_settings())
         header_row.addWidget(close_btn)
         layout.addLayout(header_row)
 
@@ -640,7 +641,18 @@ class SettingsPanel(QWidget):
     def get_show_fps(self):
         return self.fps_btn.isChecked()
 
-    
+class Backdrop(QWidget):
+    clicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("background: rgba(0, 0, 0, 150);")
+        self.hide()
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+
+
 class MainWindow(QMainWindow):
     def __init__(self, model=None):
         super().__init__()
@@ -675,6 +687,9 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._setup_shortcuts()
 
+        self.backdrop = Backdrop(self)
+        self.backdrop.clicked.connect(self._close_any_modal)
+
         self.settings_panel = SettingsPanel(self, current_camera=self.settings["camera_index"])
         self.settings_panel.settings_applied.connect(self._apply_settings)
         self.settings_panel.hide()
@@ -691,6 +706,11 @@ class MainWindow(QMainWindow):
 
         self.autocomplete = AutocompleteEngine()
 
+    def _close_any_modal(self):
+        if self.settings_panel.isVisible():
+            self._toggle_settings
+        if self.stats_panel.isVisible():
+            self._toggle_stats()
 
     def _build_ui(self):
         central = QWidget()
@@ -974,16 +994,16 @@ class MainWindow(QMainWindow):
 
     def _toggle_settings(self):
         if self.settings_panel.isVisible():
-            self._animate_panel_out(self.settings_panel)
+            self._animate_model_out(self.settings_panel)
+            self.backdrop.hide()
         else:
-            self._reposition_settings()
-            panel_w = self.settings_panel.width()
-            start_x = self.width()
-            end_x = self.width() - panel_w
-            self.settings_panel.move(start_x, 0)
+            self._center_panel(self.settings_panel)
+            self.backdrop.setGeometry(0, 0, self.width(), self.height())
+            self.backdrop.show()
+            self.backdrop.raise_()
             self.settings_panel.raise_()
             self.settings_panel.show()
-            self._animate_panel_in(self.settings_panel, end_x)
+            self._animate_modal_in(self.settings_panel)
     
     def _toggle_stats(self):
         if self.stats_panel.isVisible():
@@ -998,6 +1018,31 @@ class MainWindow(QMainWindow):
             self.stats_panel.show()
             self._animate_panel_in(self.stats_panel, end_x)
 
+    def _center_panel(self, panel):
+        x = (self.width() - panel.width()) // 2
+        y = (self.height() - panel.height()) // 2
+        panel.move(x, y)
+
+    def _animate_modal_in(self, panel):
+        panel.setWindowOpacity(0.0)
+        anim = QPropertyAnimation(panel, b"windowOpacity")
+        anim.setDuration(180)
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setEasingCurve(QEasingCurve.OutCubic)
+        anim.start()
+        panel._anim = anim
+
+    def _animate_model_out(self, panel):
+        anim = QPropertyAnimation(panel, b"windowOpacity")
+        anim.setDuration(140)
+        anim.setStartValue(1.0)
+        anim.setEndValue(0.0)
+        anim.setEasingCurve(QEasingCurve.InCubic)
+        anim.finished.connect(panel.hide)
+        anim.start()
+        panel._anim = anim
+          
     def _animate_panel_in(self, panel, end_x):
         anim = QPropertyAnimation(panel, b"pos")
         anim.setDuration(220)
@@ -1044,13 +1089,6 @@ class MainWindow(QMainWindow):
         panel_w = 300
         self.stats_panel.setGeometry(self.width() - panel_w, 0, panel_w, self.height())
 
-    def _reposition_settings(self):
-        panel_w = 320
-        panel_h = self.height()
-        screen_x = self.width() - panel_w
-        self.settings_panel.setGeometry(screen_x, 0, panel_w, panel_h)
-        self.settings_panel.setFixedSize(panel_w, self.height())
-        self.settings_panel.move(self.width() - panel_w, 0)
 
     def _apply_settings(self, confidence, hold, buffer, model_path, camera_index,
                     suggestion_count, language, window_fullscreen, mirror_preview, show_fps):
@@ -1135,8 +1173,10 @@ class MainWindow(QMainWindow):
         
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        if hasattr(self, 'backdrop') and self.backdrop.isVisible():
+            self.backdrop.setGeometry(0, 0, self.width(), self.height())
         if hasattr(self, 'settings_panel') and self.settings_panel.isVisible():
-            self._reposition_settings()
+            self._center_panel(self.settings_panel)
         if hasattr(self, 'stats_panel') and self.stats_panel.isVisible():
             self._reposition_stats()
 
