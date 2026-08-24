@@ -180,7 +180,8 @@ class SettingsPanel(QWidget):
             }}
             QTabBar::tab {{
                 background: {C_DARK}; color: {C_GRAY};
-                padding: 8px 14px; margin-right: 4px;
+                padding: 10px 18px; margin-right: 4px;
+                min-width: 90px;
                 border-top-left-radius: 6px; border-top-right-radius: 6px;
                 font-family: 'Courier New'; font-size: 11px;
             }}
@@ -191,7 +192,8 @@ class SettingsPanel(QWidget):
                 color: {C_WHITE};
             }}
         """)
-
+        self.tabs.setMinimumHeight(420)
+        
         general_tab = QWidget()
         display_tab = QWidget()
         sound_tab   = QWidget()
