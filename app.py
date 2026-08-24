@@ -12,7 +12,7 @@ from mediapipe.python.solutions import drawing_styles as mp_styles
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
                              QProgressBar, QSizePolicy, QShortcut, QSlider,
-                             QComboBox, QTabWidget)
+                             QComboBox, QTabWidget, QScrollArea)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features, list_available_camera
@@ -140,7 +140,7 @@ class SettingsPanel(QWidget):
         self.initial_settings = initial_settings or {}
         self.setWindowFlags(Qt.Widget)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setFixedSize(520, 620)
+        self.setFixedSize(560, 700)
         self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_GREEN};")
         self._build()
 
@@ -353,7 +353,15 @@ class SettingsPanel(QWidget):
         return self.sugg_slider.value()
 
     def _build_general_tab(self, tab):
-        layout = QVBoxLayout(tab)
+        outer = QVBoxLayout(tab)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(4, SPACE_M, 4, 4)
         layout.setSpacing(SPACE_M)
 
@@ -471,6 +479,8 @@ class SettingsPanel(QWidget):
         layout.addWidget(self.sugg_slider)
 
         layout.addStretch()
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
 
 
     def _build_display_tab(self, tab):
