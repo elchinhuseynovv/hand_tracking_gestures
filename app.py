@@ -12,7 +12,7 @@ from mediapipe.python.solutions import drawing_styles as mp_styles
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel,
                              QPushButton, QVBoxLayout, QHBoxLayout,
                              QProgressBar, QSizePolicy, QShortcut, QSlider,
-                             QComboBox, QTabWidget, QScrollArea)
+                             QComboBox, QTabWidget, QScrollArea, QFrame)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QImage, QPixmap, QFont, QKeySequence
 from utils import extract_features, list_available_camera
@@ -139,9 +139,14 @@ class SettingsPanel(QWidget):
         self.current_camera = current_camera
         self.initial_settings = initial_settings or {}
         self.setWindowFlags(Qt.Widget)
+        self.setObjectName("settingsPanel")
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setFixedSize(560, 700)
-        self.setStyleSheet(f"background: #141414; border-left: 3px solid {C_GREEN};")
+        self.setStyleSheet(f"""
+            background: #141414;
+            border: 1px solid {C_GREEN};
+            border-radius: 14px;
+        """)
         self._build()
 
     def _build(self):
@@ -174,6 +179,8 @@ class SettingsPanel(QWidget):
 
         # Tabs
         self.tabs = QTabWidget()
+        self.tabs.setAttribute(Qt.WA_StyledBackground, True)
+        self.tabs.setDocumentMode(True)
         self.tabs.setStyleSheet(f"""
             QTabWidget::pane {{
                 border: none; background: transparent;
@@ -360,11 +367,42 @@ class SettingsPanel(QWidget):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setFocusPolicy(Qt.NoFocus)
+        scroll.viewport().setStyleSheet("background: transparent; border: none;")
+        scroll.viewport().setAutoFillBackground(False)
+
+        scroll.setStyleSheet(f"""
+            QScrollArea, QScrollArea > QWidget {{
+                border: none;
+                outline: none;
+                background: transparent;
+            }}
+            QScrollBar:vertical {{
+                background: transparent;
+                width: 6px;
+                margin: 4px 2px 4px 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {C_BORDER};
+                border-radius: 3px;
+                min-height: 30px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {C_GREEN};
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: transparent;
+            }}
+        """)
 
         content = QWidget()
+        content.setStyleSheet("background: transparent; border: none; outline: none;")
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(4, SPACE_M, 4, 4)
+        layout.setContentsMargins(4, SPACE_M, 14, 4)
         layout.setSpacing(SPACE_M)
 
         layout.addWidget(self._label(t("language")))
