@@ -143,16 +143,18 @@ class SettingsPanel(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setFixedSize(560, 700)
         self.setStyleSheet(f"""
-            background: #141414;
-            border: 1px solid {C_GREEN};
-            border-radius: 14px;
+            QWidget#settingsPanel {{
+                background: #141414;
+                border: 1px solid {C_GREEN};
+                border-radius: 14px;
+            }}
         """)
         self._build()
 
     def _build(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(SPACE_L, SPACE_L, SPACE_L, SPACE_L)
-        layout.setSpacing(SPACE_M)
+        layout.setSpacing(SPACE_M + 4)
 
         # Header
         header_row = QHBoxLayout()
@@ -212,6 +214,7 @@ class SettingsPanel(QWidget):
         self.tabs.addTab(about_tab, t("tab_about"))
 
         layout.addWidget(self.tabs, 1)
+        layout.addSpacing(10)
 
         self._build_general_tab(general_tab)
         self._build_display_tab(display_tab)
@@ -254,7 +257,7 @@ class SettingsPanel(QWidget):
     def _label(self, text):
         lbl = QLabel(text)
         lbl.setFont(QFont("Courier New", 10, QFont.DemiBold))
-        lbl.setStyleSheet(f"color: {C_GRAY}; border: none; letter-spacing: 1px;")
+        lbl.setStyleSheet(f"color: {C_GRAY}; border: none; padding-bottom: 2px;")
         return lbl
 
     def _hint(self, text):
@@ -264,10 +267,12 @@ class SettingsPanel(QWidget):
         return lbl
 
     def _divider(self, layout):
+        layout.addSpacing(4)
         line = QWidget()
         line.setFixedHeight(1)
         line.setStyleSheet("background: #2a2a2a; border: none;")
         layout.addWidget(line)
+        layout.addSpacing(4)
 
     def _slider_style(self, color):
         return f"""
@@ -402,8 +407,8 @@ class SettingsPanel(QWidget):
         content = QWidget()
         content.setStyleSheet("background: transparent; border: none; outline: none;")
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(4, SPACE_M, 14, 4)
-        layout.setSpacing(SPACE_M)
+        layout.setContentsMargins(8, 24, 18, 8)
+        layout.setSpacing(28)
 
         layout.addWidget(self._label(t("language")))
         self.lang_combo = QComboBox()
@@ -526,7 +531,7 @@ class SettingsPanel(QWidget):
     def _build_display_tab(self, tab):
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(4, SPACE_M, 4, 4)
-        layout.setSpacing(SPACE_M)
+        layout.setSpacing(20)
 
         layout.addWidget(self._label(t("startup_behavior")))
 
