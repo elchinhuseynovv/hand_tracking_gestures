@@ -56,6 +56,7 @@ class CameraThread(QThread):
         self.running = True
         self.camera_index = camera_index
         self.prediction_buffer = deque(maxlen=BUFFER_SIZE)
+        self.landmark_buffer = deque(maxlen=15)
         self.hold_counter = 0
         self.last_added = None
 
@@ -90,12 +91,21 @@ class CameraThread(QThread):
                         mp_styles.get_default_hand_connections_style()
                     )
 
-                    features    = extract_features(hand_lm)
-                    features_np = np.array(features).reshape(1, -1)
-                    proba       = self.model.predict_proba(features_np)[0]
-                    confidence  = float(np.max(proba))
-                    raw_pred    = self.model.classes_[np.argmax(proba)]
+                    features = extract_features(hand_lm)
+                    self.landmark_buffer.append(features)
 
+                    features_np = np.array(features).reshape(1, -1)
+                    proba = self.model.predict_proba(features_np)[0]
+                    confidence = float(np.max(proba))
+                    raw_pred = self.model.classes_[np.argmax(proba)]
+
+                    from utils import compute_motion_features, classify_dynamic_letter
+                    motion = compute_motion_features(list(self.landmark_buffer))
+                    dynamic_letter = classify_dynamic_letter(motion)
+                    if dynamic_letter:
+                        raw_pred = dynamic_letter
+
+                        
                     self.prediction_buffer.append(raw_pred)
 
                     if len(self.prediction_buffer) == BUFFER_SIZE:
