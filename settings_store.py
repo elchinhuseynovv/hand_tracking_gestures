@@ -14,6 +14,7 @@ DEFAULTS = {
     "autostart_camers": True,
     "start_fullscreen": True,
     "language": "en",
+    "theme": "dark",
     "model_path": "models/az_model.pkl"
 }
 

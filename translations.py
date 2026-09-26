@@ -53,6 +53,9 @@ TRANSLATIONS = {
         "author_label":     "Author:",
         "about_description":"Real-time Azerbaijani Sign Language fingerspelling recognition using MediaPipe and machine learning.",
         "dataset_credit":   "Trained using the AzSLD (Azerbaijani Sign Language Dataset) by N. Alishzade & J. Hasanov.",
+        "theme":      "THEME",
+        "dark_mode":  "Dark",
+        "light_mode": "Light",
     },
     "az": {
         "app_title":          "AzSL Tanıma",
@@ -95,6 +98,9 @@ TRANSLATIONS = {
         "words":              "SÖZLƏR",
         "letter_breakdown":  "HƏRF BÖLGÜSÜ",
         "reset_stats":       "STATİSTİKANI SIFIRLA",
+        "theme":      "MÖVZU",
+        "dark_mode":  "Tünd",
+        "light_mode": "Açıq",
     },
     "ru": {
         "app_title":          "Распознавание AzSL",
@@ -137,6 +143,9 @@ TRANSLATIONS = {
         "words":              "СЛОВА",
         "letter_breakdown":  "РАЗБИВКА ПО БУКВАМ",
         "reset_stats":       "СБРОС СТАТИСТИКИ",
+        "theme":      "ТЕМА",
+        "dark_mode":  "Тёмная",
+        "light_mode": "Светлая",
     },
 }
 

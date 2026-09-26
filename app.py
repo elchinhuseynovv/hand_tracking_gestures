@@ -20,6 +20,8 @@ from stats_panel import StatsPanel
 from autocomplete import AutocompleteEngine
 from translations import t, set_language, get_language
 from settings_store import load_settings, save_settings
+from theme import get_theme, get_theme_name, set_theme as _set_theme_impl
+
 
 # Config
 MODEL_FILE     = "models/az_model.pkl"
@@ -30,21 +32,25 @@ HISTORY_SIZE   = 10
 SUGGESTION_COUNT = 4
 
 # Colors
-C_BG      = "#0a0a0a"
-C_PANEL   = "#181818"
-C_PANEL_HOVER = "#1f1f1f"
-C_GREEN   = "#00e676"
-C_CYAN    = "#00d4e8"
-C_BLUE    = "#2196f3"
-C_WHITE   = "#f5f5f5"
-C_GRAY    = "#8a8a8a"
-C_GRAY_DIM= "#5a5a5a"
-C_DARK    = "#252525"
-C_BORDER  = "#333333"
-SPACE_XS = 6
-SPACE_S = 10
-SPACE_M = 16
-SPACE_L = 20
+def _load_theme_colors():
+    global C_BG, C_PANEL, C_GREEN, C_CYAN, C_BLUE, C_WHITE, C_GRAY, C_GRAY_DIM, C_DARK, C_BORDER
+    th = get_theme()
+    C_BG       = th["BG"]
+    C_PANEL    = th["PANEL"]
+    C_GREEN    = th["GREEN"]
+    C_CYAN     = th["CYAN"]
+    C_BLUE     = th["BLUE"]
+    C_WHITE    = th["WHITE"]
+    C_GRAY     = th["GRAY"]
+    C_GRAY_DIM = th["GRAY_DIM"]
+    C_DARK     = th["DARK"]
+    C_BORDER   = th["BORDER"]
+
+_load_theme_colors()   # populate initial values at import time
+
+def set_theme(name):
+    _set_theme_impl(name)
+    _load_theme_colors()
 
 class CameraThread(QThread):
     frame_ready      = pyqtSignal(np.ndarray)
@@ -142,7 +148,7 @@ class CameraThread(QThread):
 
     
 class SettingsPanel(QWidget):
-    settings_applied = pyqtSignal(float, int, int, str, int, int, str, bool, bool, bool)
+    settings_applied = pyqtSignal(float, int, int, str, int, int, str, bool, bool, bool, str)
 
     def __init__(self, parent=None, current_camera=0, initial_settings=None):
         super().__init__(parent)
@@ -314,6 +320,7 @@ class SettingsPanel(QWidget):
         camera_index = self.get_selected_camera()
         suggestion_count = self.get_suggestion_count()
         language = self.lang_combo.currentData()
+        theme = self.theme_combo.currentData()
         window_fullscreen = self.get_window_fullscreen()
         mirror_preview = self.get_mirror_preview()
         show_fps = self.get_show_fps()
@@ -321,7 +328,7 @@ class SettingsPanel(QWidget):
         self._model_path = getattr(self, '_model_path', f"models/{self.model_input.text()}")
         self.settings_applied.emit(confidence, hold, buffer, self._model_path,
                                 camera_index, suggestion_count, language,
-                                window_fullscreen, mirror_preview, show_fps)
+                                window_fullscreen, mirror_preview, show_fps, theme)
         self.hide()
 
     def _reset(self):
@@ -431,6 +438,17 @@ class SettingsPanel(QWidget):
         idx = {"en": 0, "az": 1, "ru": 2}.get(current, 0)
         self.lang_combo.setCurrentIndex(idx)
         layout.addWidget(self.lang_combo)
+
+        self._divider(layout)
+        layout.addWidget(self._label(t("theme")))
+        self.theme_combo = QComboBox()
+        self.theme_combo.setFixedHeight(34)
+        self.theme_combo.setStyleSheet(self._combo_style())
+        self.theme_combo.addItem(t("dark_mode"), "dark")
+        self.theme_combo.addItem(t("light_mode"), "light")
+        idx = {"dark": 0, "light": 1}.get(get_theme_name(), 0)
+        self.theme_combo.setCurrentIndex(idx)
+        layout.addWidget(self.theme_combo)
 
         self._divider(layout)
 
@@ -771,6 +789,8 @@ class MainWindow(QMainWindow):
 
         self.autocomplete = AutocompleteEngine()
 
+    set_theme(self.settings.get("theme", "dark"))
+    
     def _close_any_modal(self):
         if self.settings_panel.isVisible():
             self._toggle_settings
@@ -1156,16 +1176,33 @@ class MainWindow(QMainWindow):
 
 
     def _apply_settings(self, confidence, hold, buffer, model_path, camera_index,
-                    suggestion_count, language, window_fullscreen, mirror_preview, show_fps):
+                    suggestion_count, language, window_fullscreen, mirror_preview, show_fps, theme):
         global CONFIDENCE_MIN, HOLD_FRAMES, BUFFER_SIZE, SUGGESTION_COUNT
         CONFIDENCE_MIN = confidence
         HOLD_FRAMES = hold
         BUFFER_SIZE = buffer
         SUGGESTION_COUNT= suggestion_count
 
+        needs_rebuild = False
+
         if language != get_language():
             set_language(language)
+            needs_rebuild = True
+
+        if theme != get_theme_name():
+            set_theme(theme)
+            needs_rebuild = True
+
+        if needs_rebuild:
             self._rebuild_ui_language()
+
+        if window_fullscreen:
+            self.showFullScreen()
+        else:
+            self.showNormal()
+
+        self.mirror_preview = mirror_preview
+        self.show_fps = show_fps
 
         self.hold_bar.setRange(0, hold)
 
@@ -1190,13 +1227,9 @@ class MainWindow(QMainWindow):
         self.show_fps = show_fps
         
         self.settings.update({
-            "confidence": confidence,
-            "hold_frames": hold,
-            "buffer_size": buffer,
-            "camera_index": camera_index,
-            "suggestion_count": suggestion_count,
-            "language": language,
-            "model_path": model_path,
+            "confidence": confidence, "hold_frames": hold, "buffer_size": buffer,
+            "camera_index": camera_index, "suggestion_count": suggestion_count,
+            "language": language, "theme": theme, "model_path": model_path,
             "sound_volume": self.settings_panel.sound_slider.value(),
             "sound_muted": self.settings_panel.mute_btn.isChecked(),
             "autostart_camera": self.settings_panel.get_autostart_camera(),
@@ -1207,7 +1240,7 @@ class MainWindow(QMainWindow):
         })
         save_settings(self.settings)
 
-        print(f"Settings applied: conf={confidence} hold={hold} buffer={buffer} camera={camera_index}")
+        print(f"Settings applied and saved: theme={theme} conf={confidence} hold={hold}")
 
     def _rebuild_ui_language(self):
         old_central = self.centralWidget()
